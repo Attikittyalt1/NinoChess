@@ -9,5 +9,7 @@ public enum MoveID
     MoveOrAttackBlockable,
     MoveOrAttackUnblockable,
     MoveUnblockable,
-    RangedAttackUnblockable
+    RangedAttackUnblockable,
+    MoveOrSwapBlockable,
+    SwapBlockable
 }

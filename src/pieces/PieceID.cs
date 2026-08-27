@@ -8,5 +8,6 @@ public enum PieceID
     Moog,
     Rook,
     Bishop,
-    King
+    King,
+    Dannel
 }

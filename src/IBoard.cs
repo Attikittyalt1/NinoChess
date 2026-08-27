@@ -14,4 +14,6 @@ interface IBoard
     public void RemovePieceAt(Position p);
     public void AddPieceAt(Position p, Piece piece);
     public void SwapPiecesAt(Position p1, Position p2);
+
+    public bool IsPromotableTerritoryFor(Position p, Allegience team);
 }

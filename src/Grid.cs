@@ -40,6 +40,21 @@ class Grid(Position Dimensions) : IBoard
         (_pieces[p2.X, p2.Y], _pieces[p1.X, p1.Y]) = (_pieces[p1.X, p1.Y], _pieces[p2.X, p2.Y]);
     }
 
+    public bool IsPromotableTerritoryFor(Position p, Allegience team)
+    {
+        if (team == Allegience.White)
+        {
+            return p.Y == Dimensions.Y - 1;
+        }
+
+        if (team == Allegience.Black)
+        {
+            return p.Y == 0;
+        }
+
+        return false;
+    }
+
     public void Print()
     {
         Debug.WriteLine("Grid Size: {0}", Dimensions);

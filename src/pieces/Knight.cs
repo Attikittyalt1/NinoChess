@@ -17,7 +17,7 @@ class Knight(BoardState Board, Position Position, Transformation Orientation, Al
             relativePos.IsInDirection(Position.N + Position.NW, 1, 1, true, true)
             )
         {
-            yield return new MoveOrAttackUnblockable(Board, Position, p);
+            yield return new MoveOrAttackBlockable(Board, Position, p);
         }
     }
 }

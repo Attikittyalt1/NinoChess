@@ -105,8 +105,8 @@ public class MyGame : Game
         Create(new Pawn(_board, new(0, 1), Transformation.Identity, Allegience.White));
         Create(new Pawn(_board, new(1, 1), Transformation.Identity, Allegience.White));
         Create(new Pawn(_board, new(2, 1), Transformation.Identity, Allegience.White));
-        Create(new Pawn(_board, new(3, 1), Transformation.Identity, Allegience.White));
-        Create(new Pawn(_board, new(4, 1), Transformation.Identity, Allegience.White));
+        Create(new Dannel(_board, new(3, 1), Transformation.Identity, Allegience.White));
+        Create(new Dannel(_board, new(4, 1), Transformation.Identity, Allegience.White));
         Create(new Pawn(_board, new(5, 1), Transformation.Identity, Allegience.White));
         Create(new Pawn(_board, new(6, 1), Transformation.Identity, Allegience.White));
         Create(new Pawn(_board, new(7, 1), Transformation.Identity, Allegience.White));
@@ -122,8 +122,8 @@ public class MyGame : Game
         Create(new Pawn(_board, new(0, 6), Transformation.Flip, Allegience.Black));
         Create(new Pawn(_board, new(1, 6), Transformation.Flip, Allegience.Black));
         Create(new Pawn(_board, new(2, 6), Transformation.Flip, Allegience.Black));
-        Create(new Pawn(_board, new(3, 6), Transformation.Flip, Allegience.Black));
-        Create(new Pawn(_board, new(4, 6), Transformation.Flip, Allegience.Black));
+        Create(new Dannel(_board, new(3, 6), Transformation.Flip, Allegience.Black));
+        Create(new Dannel(_board, new(4, 6), Transformation.Flip, Allegience.Black));
         Create(new Pawn(_board, new(5, 6), Transformation.Flip, Allegience.Black));
         Create(new Pawn(_board, new(6, 6), Transformation.Flip, Allegience.Black));
         Create(new Pawn(_board, new(7, 6), Transformation.Flip, Allegience.Black));
@@ -196,17 +196,12 @@ public class MyGame : Game
 
         if (draggingHandler.IsDragging && (draggingHandler.DraggingData?.IsDraggingPiece ?? false))
         {
-            _spriteBatch.Draw(
-                _squareTexture,
-                draggingHandler.CurrentPosition + ConvertGridPositionToPixelPosition(draggingHandler.DraggingData.InitialPiecePosition) - draggingHandler.InitialPosition,
-                null,
-                GetPieceColor(draggingHandler.DraggingData.InitialPiecePosition),
-                0f,
-                Vector2.Zero,
-                ScalePosition(_gridCellSize),
-                SpriteEffects.None,
-                0f
-            );
+            var pixelPosition = draggingHandler.CurrentPosition + ConvertGridPositionToPixelPosition(draggingHandler.DraggingData.InitialPiecePosition) - draggingHandler.InitialPosition;
+
+            var piecePosition = draggingHandler.DraggingData.InitialPiecePosition;
+
+            DrawCell(pixelPosition, ((PieceID)(Enum)_board.GetPieceAt(piecePosition).ID, _board.GetPieceAt(piecePosition).Allegience));
+            
         }
 
         _spriteBatch.End();
@@ -223,19 +218,37 @@ public class MyGame : Game
     {
         foreach (var position in _grid.GetValidPositions())
         {
-            DrawCell(position);
+            bool isEmpty = _board.IsEmpty(position) || (draggingHandler.IsDragging && (draggingHandler.DraggingData?.IsDraggingPiece ?? false) && draggingHandler.DraggingData.InitialPiecePosition == position);
+            
+            DrawCell(ConvertGridPositionToPixelPosition(position), isEmpty ? (PieceID.None, Allegience.None) : ((PieceID)(Enum)_board.GetPieceAt(position).ID, _board.GetPieceAt(position).Allegience));
         }
     }
 
-    private void DrawCell(Position pos)
+    private void DrawCell(Position pos, (PieceID id, Allegience allegience) info)
     {
-        var color =
-            _board.IsEmpty(pos) || (draggingHandler.IsDragging && (draggingHandler.DraggingData?.IsDraggingPiece ?? false) && draggingHandler.DraggingData.InitialPiecePosition == pos) ?
-            Color.White : GetPieceColor(pos);
+        var color = info switch
+        {
+            (PieceID.None, _) => Color.White,
+            (PieceID.Pawn, Allegience.White) => Color.Blue,
+            (PieceID.Pawn, Allegience.Black) => Color.DarkBlue,
+            (PieceID.Knight, Allegience.White) => Color.Orange,
+            (PieceID.Knight, Allegience.Black) => Color.DarkOrange,
+            (PieceID.Moog, Allegience.White) => Color.Violet,
+            (PieceID.Moog, Allegience.Black) => Color.DarkViolet,
+            (PieceID.Rook, Allegience.White) => Color.Gray,
+            (PieceID.Rook, Allegience.Black) => Color.DarkGray,
+            (PieceID.Bishop, Allegience.White) => Color.Cyan,
+            (PieceID.Bishop, Allegience.Black) => Color.DarkCyan,
+            (PieceID.King, Allegience.White) => Color.Magenta,
+            (PieceID.King, Allegience.Black) => Color.DarkMagenta,
+            (PieceID.Dannel, Allegience.White) => Color.Goldenrod,
+            (PieceID.Dannel, Allegience.Black) => Color.DarkGoldenrod,
+            _ => Color.Black
+        };
 
         _spriteBatch.Draw(
             _squareTexture,
-            ConvertGridPositionToPixelPosition(pos),
+            pos,
             null,
             color,
             0f,
@@ -245,22 +258,6 @@ public class MyGame : Game
             0f
         );
     }
-
-    private Color GetPieceColor(Position pos) => ((PieceID)(Enum)_board.GetPieceAt(pos).ID, _board.GetPieceAt(pos).Allegience) switch
-    {
-        (PieceID.Pawn, Allegience.White) => Color.Blue,
-        (PieceID.Pawn, Allegience.Black) => Color.DarkBlue,
-        (PieceID.Knight, Allegience.White) => Color.Orange,
-        (PieceID.Knight, Allegience.Black) => Color.DarkOrange,
-        (PieceID.Moog, Allegience.White) => Color.Violet,
-        (PieceID.Moog, Allegience.Black) => Color.DarkViolet,
-        (PieceID.Rook, Allegience.White) => Color.Gray,
-        (PieceID.Rook, Allegience.Black) => Color.DarkGray,
-        (PieceID.Bishop, Allegience.White) => Color.Cyan,
-        (PieceID.Bishop, Allegience.Black) => Color.DarkCyan,
-        (PieceID.King, Allegience.White) => Color.Magenta,
-        (PieceID.King, Allegience.Black) => Color.DarkMagenta
-    };
 
     private Position ScalePosition(Position pos) => (Position) MyExtensions.MultiplyComponentWise(pos, CurrentScale);
     private Position ConvertGridPositionToPixelPosition(Position pos) => ScalePosition(_gridOffset + _gridBorderSize + Position.MultiplyComponentWise(FlipYRegardingBoardSize(pos), _gridCellSize + _gridBorderSize)) + MarginOffset;
