@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace NinoChess;
@@ -22,6 +23,7 @@ abstract class Piece(BoardState board, Position position, Transformation orienta
 
     public virtual bool IsSolid => true;
     public abstract int MaxMoveRange { get; }
+    public virtual int CurrentTokenIndex => -1;
 
     public abstract IEnumerable<Move> GetMovesAt(Position p);
 
@@ -30,6 +32,12 @@ abstract class Piece(BoardState board, Position position, Transformation orienta
     public Move GetBestValidMoveAt(Position p) => GetMovesAt(p).SkipWhile(move => !move.IsValid()).First();
 
     public Position RelativePositionOf(Position p) => orientation * (p - position);
+
+    public EventHandler? OnCreate;
+
+    public EventHandler? OnDestroy;
+
+    public EventHandler? OnSwap;
 }
 
 interface IHasMoves

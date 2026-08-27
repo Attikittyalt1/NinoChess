@@ -1,11 +1,9 @@
 ﻿using NinoChess.Moves;
-using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace NinoChess.Pieces;
 
-class King(BoardState Board, Position Position, Transformation Orientation, Allegience Allegience) : Piece(Board, Position, Orientation, Allegience)
+class King(BoardState board, Position position, Transformation orientation, Allegience allegience) : Piece(board, position, orientation, allegience)
 {
     public override RegistryID ID => PieceID.King;
     public override int MaxMoveRange => Range;

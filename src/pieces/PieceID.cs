@@ -9,5 +9,6 @@ public enum PieceID
     Rook,
     Bishop,
     King,
-    Dannel
+    Dannel,
+    Scholar
 }

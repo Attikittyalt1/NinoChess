@@ -1,11 +1,9 @@
 ﻿using NinoChess.Moves;
-using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace NinoChess.Pieces;
 
-class Moog(BoardState Board, Position Position, Transformation Orientation, Allegience Allegience) : Piece(Board, Position, Orientation, Allegience)
+class Moog(BoardState board, Position position, Transformation orientation, Allegience allegience) : Piece(board, position, orientation, allegience)
 {
     public override RegistryID ID => PieceID.Moog;
     public override int MaxMoveRange => Range;
