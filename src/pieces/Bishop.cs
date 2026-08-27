@@ -11,7 +11,7 @@ class Bishop(BoardState board, Position position, Transformation orientation, Al
 
     public override IEnumerable<Move> GetMovesAt(Position p)
     {
-        var relativePos = RelativePositionOf(p);
+        var relativePos = ToRelativePosition(p);
 
         if (
             relativePos.IsInDirection(Position.NE, 1, Range, true, true)

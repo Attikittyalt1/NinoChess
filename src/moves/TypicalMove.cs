@@ -10,6 +10,11 @@ abstract record TypicalMove(BoardState Board, Position Origin, Position Target) 
     public virtual bool MovePieces => true;
     public virtual bool DestroyTarget => true;
     public virtual bool DisableAfterFirstMove => false;
+    public virtual Position EffectiveOrigin => Origin;
+    public virtual bool EffectiveOriginCanTargetEnemy => true;
+    public virtual bool EffectiveOriginCanTargetAlly => true;
+    public virtual bool EffectiveOriginCanTargetNeutral => true;
+    public virtual bool EffectiveOriginCanTargetEmpty => true;
 
     public override void Execute()
     {
@@ -20,7 +25,7 @@ abstract record TypicalMove(BoardState Board, Position Origin, Position Target) 
 
         if (MovePieces)
         {
-            Board.SwapPieceLocations(Origin, Target, new(Origin, Target));
+            Board.SwapPieceLocations(EffectiveOrigin, Target, new(Origin, Target));
         }
     }
 
@@ -29,6 +34,12 @@ abstract record TypicalMove(BoardState Board, Position Origin, Position Target) 
         || (CanTargetEnemy && Board.HasEnemy(Target, Origin))
         || (CanTargetAlly && Board.HasAlly(Target, Origin))
         || (CanTargetNeutral && Board.HasNeutral(Target, Origin)))
+        && Board.ContainsPosition(EffectiveOrigin)
+        && (EffectiveOrigin == Origin
+        || (EffectiveOriginCanTargetEmpty && Board.IsEmpty(EffectiveOrigin))
+        || (EffectiveOriginCanTargetEnemy && Board.HasEnemy(EffectiveOrigin, Origin))
+        || (EffectiveOriginCanTargetAlly && Board.HasAlly(EffectiveOrigin, Origin))
+        || (EffectiveOriginCanTargetNeutral && Board.HasNeutral(EffectiveOrigin, Origin)))
         && !(DisableAfterFirstMove && Board.GetPieceAt(Origin).HasMoved)
-        && !(IsBlockable && Board.HasPiecesBetween(Origin, Target));
+        && !(IsBlockable && Board.HasPiecesBetween(EffectiveOrigin, Target));
 }

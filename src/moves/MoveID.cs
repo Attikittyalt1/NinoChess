@@ -3,6 +3,7 @@
 public enum MoveID
 {
     None = 0,
+    AlternateSwapUnblockable,
     AttackBlockable,
     FirstMoveBlockable,
     MoveBlockable,

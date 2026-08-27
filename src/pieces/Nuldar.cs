@@ -1,0 +1,36 @@
+﻿using NinoChess.Moves;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace NinoChess.Pieces;
+
+class Nuldar(BoardState board, Position position, Transformation orientation, Allegience allegience) : Piece(board, position, orientation, allegience)
+{
+    public override RegistryID ID => PieceID.Nuldar;
+    public override int MaxMoveRange => 2;
+
+    private static List<Position> SwappablePositions => [
+            new(1, 0), new(2, 0), new(3, 0), new(2, 1), new(2, -1)
+        ];
+
+    public override IEnumerable<Move> GetMovesAt(Position p)
+    {
+        var relativePos = ToRelativePosition(p);
+
+        if (relativePos == Position.S || relativePos == Position.NW || relativePos == Position.NE)
+        {
+            yield return new MoveBlockable(Board, Position, p);
+        }
+
+        if (relativePos == Position.N)
+        {
+            yield return new FirstMoveBlockable(Board, Position, p);
+        }
+
+        if (SwappablePositions.Any(pos => pos == relativePos with { X = Math.Abs(relativePos.X) }))
+        {
+            yield return new AlternateSwapUnblockable(Board, Position, p, (p-Position).ReflectAcross(Orientation * Position.N) + Position);
+        }
+    }
+}

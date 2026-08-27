@@ -11,7 +11,7 @@ class Rook(BoardState board, Position position, Transformation orientation, Alle
 
     public override IEnumerable<Move> GetMovesAt(Position p)
     {
-        var relativePos = RelativePositionOf(p);
+        var relativePos = ToRelativePosition(p);
 
         if (
             relativePos.IsInDirection(Position.N, 1, Range, true, true)

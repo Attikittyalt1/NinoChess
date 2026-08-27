@@ -71,6 +71,8 @@ public readonly record struct Position(int X, int Y)
         return division.Y == 0 && (mirror || division.X > 0) || (includePerpendicular && division.X == 0);
     }
 
+    public Position ProjectOnto(Position direction) => direction * Dot(this, direction) / direction.MagnitudeSquared;
+    public Position ReflectAcross(Position direction) => 2 * ProjectOnto(direction) - this;
 
     public static IEnumerable<Position> Range(Position start, Position size)
     {
@@ -92,6 +94,7 @@ public readonly record struct Position(int X, int Y)
     }
 
     public static Position MultiplyComponentWise(Position p1, Position p2) => new(p1.X * p2.X, p1.Y * p2.Y);
+    public static int Dot(Position p1, Position p2) => p1.X * p2.X + p1.Y * p2.Y;
 
     public override string ToString()
     {
@@ -123,5 +126,9 @@ public readonly record struct Transformation(int A, int B, int C, int D)
         );
 
     public Transformation Transpose => new(A, C, B, D);
+    public Transformation Minor => new(D, C, B, A);
+    public Transformation Cofactor => new(D, -C, -B, A);
+    public Transformation Adjoint => new(D, -B, -C, A);
+    public Transformation Inverse => Adjoint / Determinent; // note that this division is lossy
     public int Determinent => A * D - B * C;
 }

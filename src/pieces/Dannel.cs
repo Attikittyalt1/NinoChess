@@ -10,14 +10,14 @@ class Dannel(BoardState board, Position position, Transformation orientation, Al
 
     public override IEnumerable<Move> GetMovesAt(Position p)
     {
-        var relativePos = RelativePositionOf(p);
+        var relativePos = ToRelativePosition(p);
 
         if (relativePos == Position.S)
         {
             yield return new MoveOrAttackBlockable(Board, Position, p);
         }
 
-        if (relativePos == Position.N)
+        if (relativePos == Position.N || relativePos == Position.N + Position.NW || relativePos == Position.N + Position.NE)
         {
             yield return new AttackBlockable(Board, Position, p);
         }
@@ -25,11 +25,6 @@ class Dannel(BoardState board, Position position, Transformation orientation, Al
         if (relativePos == Position.NW || relativePos == Position.NE)
         {
             yield return new SwapBlockable(Board, Position, p);
-        }
-
-        if (relativePos == Position.N + Position.NW || relativePos == Position.N + Position.NE)
-        {
-            yield return new AttackBlockable(Board, Position, p);
         }
     }
 }

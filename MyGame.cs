@@ -24,7 +24,7 @@ public class MyGame : Game
     private GraphicsDeviceManager _graphics;
     private SpriteBatch? _spriteBatch;
     private Texture2D? _squareTexture;
-    private Dictionary<PieceID, IDrawableTexture> _pieceTextures;
+    private Dictionary<PieceID, IDrawableTextureWithTokens> _pieceTextures;
 
     private Grid? _grid;
     private BoardState? _board;
@@ -108,10 +108,10 @@ public class MyGame : Game
     {
         Create(new Pawn(_board, new(0, 1), Transformation.Identity, Allegience.White));
         Create(new Pawn(_board, new(1, 1), Transformation.Identity, Allegience.White));
-        Create(new Pawn(_board, new(2, 1), Transformation.Identity, Allegience.White));
+        Create(new Nuldar(_board, new(2, 1), Transformation.Identity, Allegience.White));
         Create(new Dannel(_board, new(3, 1), Transformation.Identity, Allegience.White));
         Create(new Dannel(_board, new(4, 1), Transformation.Identity, Allegience.White));
-        Create(new Pawn(_board, new(5, 1), Transformation.Identity, Allegience.White));
+        Create(new Nuldar(_board, new(5, 1), Transformation.Identity, Allegience.White));
         Create(new Pawn(_board, new(6, 1), Transformation.Identity, Allegience.White));
         Create(new Pawn(_board, new(7, 1), Transformation.Identity, Allegience.White));
         Create(new Rook(_board, new(0, 0), Transformation.Identity, Allegience.White));
@@ -125,10 +125,10 @@ public class MyGame : Game
 
         Create(new Pawn(_board, new(0, 6), Transformation.Flip, Allegience.Black));
         Create(new Pawn(_board, new(1, 6), Transformation.Flip, Allegience.Black));
-        Create(new Pawn(_board, new(2, 6), Transformation.Flip, Allegience.Black));
+        Create(new Nuldar(_board, new(2, 6), Transformation.Flip, Allegience.Black));
         Create(new Dannel(_board, new(3, 6), Transformation.Flip, Allegience.Black));
         Create(new Dannel(_board, new(4, 6), Transformation.Flip, Allegience.Black));
-        Create(new Pawn(_board, new(5, 6), Transformation.Flip, Allegience.Black));
+        Create(new Nuldar(_board, new(5, 6), Transformation.Flip, Allegience.Black));
         Create(new Pawn(_board, new(6, 6), Transformation.Flip, Allegience.Black));
         Create(new Pawn(_board, new(7, 6), Transformation.Flip, Allegience.Black));
         Create(new Rook(_board, new(0, 7), Transformation.Flip, Allegience.Black));
@@ -172,11 +172,35 @@ public class MyGame : Game
             Content.Load<Texture2D>("Assets/Pieces/Pawn_Color"),
             Content.Load<Texture2D>("Assets/Pieces/Pawn_Shading")
             ));
-        _pieceTextures.Add(PieceID.Knight, new DrawableSimpleSprite(
-            _squareTexture,
-            Color.DarkOrange,
-            _gridCellSize
+        Add(PieceID.Knight, Color.SaddleBrown);
+        Add(PieceID.Bishop, Color.CornflowerBlue);
+        Add(PieceID.Dannel, Color.IndianRed);
+        AddWithTokens(PieceID.Scholar, Color.DarkBlue, [Color.DarkBlue, Color.DarkRed]);
+        Add(PieceID.King, Color.YellowGreen);
+        Add(PieceID.Moog, Color.DeepPink);
+        Add(PieceID.Rook, Color.DarkGreen);
+        Add(PieceID.Nuldar, Color.DarkTurquoise);
+
+        void Add(PieceID id, Color color)
+        {
+            _pieceTextures.Add(id, new DrawableSimpleSprite(
+                _squareTexture,
+                color,
+                _gridCellSize
             ));
+        }
+
+        void AddWithTokens(PieceID id, Color color, Color[] tokens)
+        {
+            _pieceTextures.Add(id, new DrawableSimpleSprite(
+                _squareTexture,
+                color,
+                _gridCellSize,
+                _tokenOffset,
+                _tokenSize,
+                tokens
+            ));
+        }
     }
 
     protected override void Update(GameTime gameTime)
@@ -258,26 +282,6 @@ public class MyGame : Game
     {
         var (id, allegience) = ((PieceID)(Enum)piece.ID, piece.Allegience);
 
-        var pieceColor = (id, allegience) switch
-        {
-            (PieceID.None, _) => Color.White,
-            (PieceID.Scholar, Allegience.White) => Color.Blue,
-            (PieceID.Scholar, Allegience.Black) => Color.DarkBlue,
-            (PieceID.Knight, Allegience.White) => Color.Orange,
-            (PieceID.Knight, Allegience.Black) => Color.DarkOrange,
-            (PieceID.Moog, Allegience.White) => Color.Violet,
-            (PieceID.Moog, Allegience.Black) => Color.DarkViolet,
-            (PieceID.Rook, Allegience.White) => Color.Gray,
-            (PieceID.Rook, Allegience.Black) => Color.DarkGray,
-            (PieceID.Bishop, Allegience.White) => Color.Cyan,
-            (PieceID.Bishop, Allegience.Black) => Color.DarkCyan,
-            (PieceID.King, Allegience.White) => Color.Magenta,
-            (PieceID.King, Allegience.Black) => Color.DarkMagenta,
-            (PieceID.Dannel, Allegience.White) => Color.Goldenrod,
-            (PieceID.Dannel, Allegience.Black) => Color.DarkGoldenrod,
-            _ => Color.Black
-        };
-
         var alignmentColor = allegience switch
         {
             Allegience.White => Color.White,
@@ -287,26 +291,10 @@ public class MyGame : Game
 
         if (_pieceTextures.TryGetValue(id, out var value))
         {
-            value.Draw(new(_spriteBatch, CurrentScale, alignmentColor, pixelPos));
-        } 
-        else
+            value.Draw(new(_spriteBatch, CurrentScale, alignmentColor, pixelPos), piece.CurrentTokenIndex);
+        } else
         {
-            DrawCell(pixelPos, pieceColor, _gridCellSize);
-        }
-
-        if (piece is Scholar scholar)
-        {
-            var mode = scholar.CurrentMode;
-
-            if (mode == Scholar.Mode.Agile)
-            {
-                DrawCell(pixelPos + _tokenOffset, Color.LightCyan, _tokenSize);
-            }
-
-            if (mode == Scholar.Mode.Aggressive)
-            {
-                DrawCell(pixelPos + _tokenOffset, Color.LightSalmon, _tokenSize);
-            }
+            DrawCell(pixelPos, Color.Black, _gridCellSize);
         }
     }
 

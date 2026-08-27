@@ -31,7 +31,9 @@ abstract class Piece(BoardState board, Position position, Transformation orienta
 
     public Move GetBestValidMoveAt(Position p) => GetMovesAt(p).SkipWhile(move => !move.IsValid()).First();
 
-    public Position RelativePositionOf(Position p) => orientation * (p - position);
+    public Position ToRelativePosition(Position p) => orientation * (p - position);
+
+    public Position ToAbsolutePosition(Position p) => orientation.Inverse * p + position;
 
     public EventHandler? OnCreate;
 
