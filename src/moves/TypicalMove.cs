@@ -15,12 +15,12 @@ abstract record TypicalMove(BoardState Board, Position Origin, Position Target) 
     {
         if (DestroyTarget && Board.HasPieceAt(Target))
         {
-            Board.DestroyPieceAt(Target, new());
+            Board.DestroyPieceAt(Target, new(Board.GetPieceAt(Target)));
         }
 
         if (MovePieces)
         {
-            Board.SwapPieceLocations(Origin, Target, new());
+            Board.SwapPieceLocations(Origin, Target, new(Origin, Target));
         }
     }
 

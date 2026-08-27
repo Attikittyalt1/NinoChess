@@ -15,7 +15,7 @@ class BoardState(IBoard board)
 
     private List<BoardStateUpdateInfo> _recentBoardUpdates = [];
     private List<BoardStateUpdateInfo> _newBoardUpdates = [];
-    public record PieceDestructionInfo(Position Pos, Piece Piece) : BoardStateUpdateInfo;
+    public record PieceDestructionInfo(Piece Piece) : BoardStateUpdateInfo;
     public void DestroyPieceAt(Position p, PieceDestructionInfo info)
     {
         board.RemovePieceAt(p);
@@ -23,7 +23,7 @@ class BoardState(IBoard board)
         _newBoardUpdates.Add(info);
     }
 
-    public record PieceCreationInfo(Position Pos, Piece Piece) : BoardStateUpdateInfo;
+    public record PieceCreationInfo(Piece Piece) : BoardStateUpdateInfo;
     public void CreatePieceAt(Position p, PieceCreationInfo info)
     {
         board.AddPieceAt(p, info.Piece);
@@ -31,7 +31,7 @@ class BoardState(IBoard board)
         _newBoardUpdates.Add(info);
     }
 
-    public record PieceSwapInfo() : BoardStateUpdateInfo;
+    public record PieceSwapInfo(Position p1, Position p2) : BoardStateUpdateInfo;
     public void SwapPieceLocations(Position p1, Position p2, PieceSwapInfo info)
     {
         if (board.HasPieceAt(p1)) board.GetPieceAt(p1).Position = p2;
