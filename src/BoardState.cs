@@ -41,7 +41,7 @@ class BoardState(IBoard board)
         _newBoardUpdates.Add(info);
     }
 
-    public ReadOnlyCollection<BoardStateUpdateInfo> RecentBoardUpdates() => _recentBoardUpdates.AsReadOnly();
+    public ReadOnlyCollection<BoardStateUpdateInfo> RecentBoardUpdates => _recentBoardUpdates.AsReadOnly();
 
     public void ExecuteMove(Position p1, Position p2)
     {
