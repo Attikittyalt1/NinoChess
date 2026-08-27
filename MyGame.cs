@@ -1,0 +1,335 @@
+﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
+using NinoChess.Pieces;
+using System;
+using System.Diagnostics;
+
+namespace NinoChess;
+public class MyGame : Game
+{
+    private Vector2 MinScale => Vector2.One;
+    private Vector2 MaxScale => Vector2.One;
+    private Vector2 CurrentScale = Vector2.One;
+    private Position CurrentSize
+    {
+        get => ScalePosition(BaseSize);
+        set => CurrentScale = new Vector2((float)value.X / BaseSize.X, (float)value.Y / BaseSize.Y).Clamp(MinScale, MaxScale);
+    }
+    private Position TrueWindowSize => new(Window.ClientBounds.Width, Window.ClientBounds.Height);
+    private Position MarginOffset => (TrueWindowSize - CurrentSize) / 2;
+    private Position BaseSize => Position.MultiplyComponentWise(_grid.Dimensions, _gridCellSize + _gridBorderSize) + _gridOffset + _gridBorderSize;
+
+    private GraphicsDeviceManager _graphics;
+    private SpriteBatch? _spriteBatch;
+    private Texture2D? _squareTexture;
+
+    private Grid? _grid;
+    private BoardState? _board;
+
+    private Position _gridOffset => Position.Zero;
+    private Position _gridCellSize => Position.Unit * 64;
+    private Position _gridBorderSize => Position.Unit * 2;
+
+    record PieceDraggingData(bool IsDraggingPiece, Position InitialPiecePosition) : IDisposable
+    {
+        public void Dispose()
+        {
+
+        }
+    }
+    private DraggingHandler<PieceDraggingData> draggingHandler;
+
+    public MyGame()
+    {
+        _graphics = new GraphicsDeviceManager(this);
+        Content.RootDirectory = "Content";
+        IsMouseVisible = true;
+    }
+
+    protected override void Initialize()
+    {
+        _grid = new(8);
+        _board = new(_grid);
+
+        SetupBoard();
+
+        draggingHandler = new();
+        draggingHandler.OnDragBegin += (o, e) =>
+        {
+            var handler = (DraggingHandler<PieceDraggingData>)o;
+
+            if (IsPixelPositionOnCell(handler.InitialPosition))
+            {
+                var pos = ConvertPixelPositionToGridPosition(handler.InitialPosition);
+
+                if (_board.ContainsPosition(pos) && _board.HasPieceAt(pos))
+                {
+                    handler.DraggingData = new(true, pos);
+                    return;
+                }
+            }
+
+            handler.DraggingData = new(false, default);
+        };
+
+        draggingHandler.OnDragEnd += (o, e) =>
+        {
+            var handler = (DraggingHandler<PieceDraggingData>)o;
+            var data = handler.DraggingData;
+
+            if (!data.IsDraggingPiece)
+            {
+                return;
+            }
+
+            if (IsPixelPositionOnCell(handler.CurrentPosition))
+            {
+                var pos = ConvertPixelPositionToGridPosition(handler.CurrentPosition);
+
+                if (_board.ContainsPosition(pos) && _board.IsValidMove(data.InitialPiecePosition, pos))
+                {
+                    _board.ExecuteMove(data.InitialPiecePosition, pos);
+                    return;
+                }
+            }
+        };
+
+        InitializeWindow();
+
+        base.Initialize();
+    }
+
+    private void SetupBoard()
+    {
+        Create(new Pawn(_board, new(0, 1), Transformation.Identity, Allegience.White));
+        Create(new Pawn(_board, new(1, 1), Transformation.Identity, Allegience.White));
+        Create(new Pawn(_board, new(2, 1), Transformation.Identity, Allegience.White));
+        Create(new Pawn(_board, new(3, 1), Transformation.Identity, Allegience.White));
+        Create(new Pawn(_board, new(4, 1), Transformation.Identity, Allegience.White));
+        Create(new Pawn(_board, new(5, 1), Transformation.Identity, Allegience.White));
+        Create(new Pawn(_board, new(6, 1), Transformation.Identity, Allegience.White));
+        Create(new Pawn(_board, new(7, 1), Transformation.Identity, Allegience.White));
+        Create(new Rook(_board, new(0, 0), Transformation.Identity, Allegience.White));
+        Create(new Knight(_board, new(1, 0), Transformation.Identity, Allegience.White));
+        Create(new Bishop(_board, new(2, 0), Transformation.Identity, Allegience.White));
+        Create(new King(_board, new(3, 0), Transformation.Identity, Allegience.White));
+        Create(new Moog(_board, new(4, 0), Transformation.Identity, Allegience.White));
+        Create(new Bishop(_board, new(5, 0), Transformation.Identity, Allegience.White));
+        Create(new Knight(_board, new(6, 0), Transformation.Identity, Allegience.White));
+        Create(new Rook(_board, new(7, 0), Transformation.Identity, Allegience.White));
+
+        Create(new Pawn(_board, new(0, 6), Transformation.Flip, Allegience.Black));
+        Create(new Pawn(_board, new(1, 6), Transformation.Flip, Allegience.Black));
+        Create(new Pawn(_board, new(2, 6), Transformation.Flip, Allegience.Black));
+        Create(new Pawn(_board, new(3, 6), Transformation.Flip, Allegience.Black));
+        Create(new Pawn(_board, new(4, 6), Transformation.Flip, Allegience.Black));
+        Create(new Pawn(_board, new(5, 6), Transformation.Flip, Allegience.Black));
+        Create(new Pawn(_board, new(6, 6), Transformation.Flip, Allegience.Black));
+        Create(new Pawn(_board, new(7, 6), Transformation.Flip, Allegience.Black));
+        Create(new Rook(_board, new(0, 7), Transformation.Flip, Allegience.Black));
+        Create(new Knight(_board, new(1, 7), Transformation.Flip, Allegience.Black));
+        Create(new Bishop(_board, new(2, 7), Transformation.Flip, Allegience.Black));
+        Create(new King(_board, new(3, 7), Transformation.Flip, Allegience.Black));
+        Create(new Moog(_board, new(4, 7), Transformation.Flip, Allegience.Black));
+        Create(new Bishop(_board, new(5, 7), Transformation.Flip, Allegience.Black));
+        Create(new Knight(_board, new(6, 7), Transformation.Flip, Allegience.Black));
+        Create(new Rook(_board, new(7, 7), Transformation.Flip, Allegience.Black));
+
+        void Create(Piece piece)
+        {
+            _board.CreatePieceAt(piece.Position, new(piece));
+        }
+    }
+
+    private void InitializeWindow()
+    {
+        _graphics.IsFullScreen = false;
+        _graphics.PreferredBackBufferWidth = CurrentSize.X;
+        _graphics.PreferredBackBufferHeight = CurrentSize.Y;
+        _graphics.ApplyChanges();
+
+        Window.AllowUserResizing = true;
+        Window.ClientSizeChanged += new EventHandler<EventArgs>((sender, e) =>
+        {
+            CurrentSize = TrueWindowSize;
+        });
+    }
+
+    protected override void LoadContent()
+    {
+        _spriteBatch = new SpriteBatch(GraphicsDevice);
+
+        _squareTexture = new Texture2D(GraphicsDevice, 1, 1);
+        _squareTexture.SetData([Color.White]);
+
+        // TODO: use this.Content to load your game content here
+    }
+
+    protected override void Update(GameTime gameTime)
+    {
+        UpdateInputs(gameTime);
+
+        base.Update(gameTime);
+    }
+
+    private void UpdateInputs(GameTime gameTime)
+    {
+        KeyboardState keyboardState = Keyboard.GetState();
+        GamePadState gamePadState = GamePad.GetState(PlayerIndex.One);
+        MouseState mouseState = Mouse.GetState();
+
+
+        if (gamePadState.Buttons.Back == ButtonState.Pressed || keyboardState.IsKeyDown(Keys.Escape))
+            Exit();
+
+        draggingHandler.Update(gameTime, mouseState);
+    }
+
+    protected override void Draw(GameTime gameTime)
+    {
+        GraphicsDevice.Clear(Color.Black);
+
+        _spriteBatch.Begin();
+
+        DrawBoard();
+
+        if (draggingHandler.IsDragging && (draggingHandler.DraggingData?.IsDraggingPiece ?? false))
+        {
+            _spriteBatch.Draw(
+                _squareTexture,
+                draggingHandler.CurrentPosition + ConvertGridPositionToPixelPosition(draggingHandler.DraggingData.InitialPiecePosition) - draggingHandler.InitialPosition,
+                null,
+                GetPieceColor(draggingHandler.DraggingData.InitialPiecePosition),
+                0f,
+                Vector2.Zero,
+                ScalePosition(_gridCellSize),
+                SpriteEffects.None,
+                0f
+            );
+        }
+
+        _spriteBatch.End();
+
+        base.Draw(gameTime);
+    }
+
+    private void DrawBoard()
+    {
+        DrawGrid();
+    }
+
+    private void DrawGrid()
+    {
+        foreach (var position in _grid.GetValidPositions())
+        {
+            DrawCell(position);
+        }
+    }
+
+    private void DrawCell(Position pos)
+    {
+        var color =
+            _board.IsEmpty(pos) || (draggingHandler.IsDragging && (draggingHandler.DraggingData?.IsDraggingPiece ?? false) && draggingHandler.DraggingData.InitialPiecePosition == pos) ?
+            Color.White : GetPieceColor(pos);
+
+        _spriteBatch.Draw(
+            _squareTexture,
+            ConvertGridPositionToPixelPosition(pos),
+            null,
+            color,
+            0f,
+            Vector2.Zero,
+            ScalePosition(_gridCellSize),
+            SpriteEffects.None,
+            0f
+        );
+    }
+
+    private Color GetPieceColor(Position pos) => ((PieceID)(Enum)_board.GetPieceAt(pos).ID, _board.GetPieceAt(pos).Allegience) switch
+    {
+        (PieceID.Pawn, Allegience.White) => Color.Blue,
+        (PieceID.Pawn, Allegience.Black) => Color.DarkBlue,
+        (PieceID.Knight, Allegience.White) => Color.Orange,
+        (PieceID.Knight, Allegience.Black) => Color.DarkOrange,
+        (PieceID.Moog, Allegience.White) => Color.Violet,
+        (PieceID.Moog, Allegience.Black) => Color.DarkViolet,
+        (PieceID.Rook, Allegience.White) => Color.Gray,
+        (PieceID.Rook, Allegience.Black) => Color.DarkGray,
+        (PieceID.Bishop, Allegience.White) => Color.Cyan,
+        (PieceID.Bishop, Allegience.Black) => Color.DarkCyan,
+        (PieceID.King, Allegience.White) => Color.Magenta,
+        (PieceID.King, Allegience.Black) => Color.DarkMagenta
+    };
+
+    private Position ScalePosition(Position pos) => (Position) MyExtensions.MultiplyComponentWise(pos, CurrentScale);
+    private Position ConvertGridPositionToPixelPosition(Position pos) => ScalePosition(_gridOffset + _gridBorderSize + Position.MultiplyComponentWise(FlipYRegardingBoardSize(pos), _gridCellSize + _gridBorderSize)) + MarginOffset;
+    private Position ConvertPixelPositionToGridPosition(Position pos) => FlipYRegardingBoardSize((Position) MyExtensions.DivideComponentWise(MyExtensions.DivideComponentWise(pos - MarginOffset, CurrentScale) - (_gridOffset + _gridBorderSize), _gridCellSize + _gridBorderSize));
+    private bool IsPixelPositionOnCell(Position pos)
+    {
+        var boardPos = MyExtensions.DivideComponentWise(pos - MarginOffset, CurrentScale) - (_gridOffset + _gridBorderSize);
+
+        if (!boardPos.IsBetween(Vector2.Zero, Position.MultiplyComponentWise(_grid.Dimensions, _gridCellSize + _gridBorderSize), true, false))
+        {
+            return false;
+        }
+
+        return MyExtensions.ModulusComponentWise(boardPos, _gridCellSize + _gridBorderSize).IsBetween(Vector2.Zero, _gridCellSize, true, false);
+    }
+
+    private Position FlipYRegardingBoardSize(Position pos) => new Position(pos.X, _grid.Dimensions.Y - 1 - pos.Y);
+}
+
+public class DraggingHandler<TData>
+    where TData : class, IDisposable
+{
+    public bool IsDragging
+    {
+        get; private set
+        {
+            if (field != value)
+            {
+                field = value;
+
+                if (value)
+                {
+                    InitialPosition = CurrentPosition;
+                    OnDragBegin?.Invoke(this, EventArgs.Empty);
+                }
+                else
+                {
+                    OnDragEnd?.Invoke(this, EventArgs.Empty);
+                    DraggingData?.Dispose();
+                    DraggingData = null;
+                }
+            }
+        }
+    }
+
+    public TData? DraggingData;
+    public Position InitialPosition { get; private set;  }
+    public Position CurrentPosition { get; private set; }
+    public Position TotalPositionDelta => CurrentPosition - InitialPosition;
+
+    public class DragMouseUpdateEventArgs(Position recentPositionDelta, TimeSpan elapsedGameTime) : EventArgs
+    {
+        public Position RecentPositionDelta => recentPositionDelta;
+        public TimeSpan ElapsedGameTime => elapsedGameTime;
+    }
+    public event EventHandler? OnDragMouseUpdate;
+    public event EventHandler? OnDragBegin;
+    public event EventHandler? OnDragEnd;
+
+    public void Update(GameTime gameTime, MouseState mouseState)
+    {
+        var PrevPosition = CurrentPosition;
+        CurrentPosition = mouseState.Position;
+
+        if (IsDragging)
+        {
+            OnDragMouseUpdate?.Invoke(this, new DragMouseUpdateEventArgs(CurrentPosition - PrevPosition, gameTime.ElapsedGameTime));
+        }
+
+        IsDragging = mouseState.LeftButton == ButtonState.Pressed;
+    }
+}
