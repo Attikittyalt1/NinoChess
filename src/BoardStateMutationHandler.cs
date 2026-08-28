@@ -12,14 +12,17 @@ public class BoardStateMutationHandler(BoardStateData boardState)
     private List<IBoardStateMutation> _boardMutations = [];
 
     public ReadOnlyCollection<IBoardStateMutation> RecentBoardMutations => _previousBoardMutations.AsReadOnly();
+    public EventService MutationEvents = new();
 
-    public void Execute<TEventArgs>(IBoardStateMutation mutation)
-        where TEventArgs : EventArgs
+
+    public void Execute<T>(T mutation)
+        where T : EventArgs, IBoardStateMutation
     {
-        mutation.Execute(boardState);
+        mutation.Execute();
+
         _boardMutations.Add(mutation);
 
-        boardState.MutationEvents.Get<TEventArgs>()?.Invoke(this, (TEventArgs) mutation.GetEventArgs());
+        MutationEvents.Get<T>()?.Invoke(this, (T) mutation.GetEventArgs());
     }
 
     public void Execute(MoveInfo moveInfo)

@@ -11,8 +11,6 @@ public class BoardStateData(IBoard board)
 {
     public IBoard Board => board;
 
-    public EventService MutationEvents = new();
-
     public bool IsValidMove(MoveInfo info)
     {
         return board.GetPieceAt(info.Origin).HasValidMoveAt(info.Target);
@@ -30,25 +28,7 @@ public class BoardStateData(IBoard board)
         throw new NotImplementedException();
     }
 
-    public bool HasPiecesBetween(Position p1, Position p2)
-    {
-        var diff = p2 - p1;
-        var GCD = (int)Euclid.GreatestCommonDivisor(diff.X, diff.Y);
-
-        var step = diff / GCD;
-        var current = p1;
-
-        for (int i = 1; i < GCD; i++)
-        {
-            current += step;
-            if (board.ContainsPosition(current) && HasSolid(current))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    public bool HasPiecesBetween(Position p1, Position p2) => Position.SatisfiesBetween(p1, p2, pos => board.ContainsPosition(pos) && HasSolid(pos));
 
     public bool IsEnemy(Position target, Position reference)
     {

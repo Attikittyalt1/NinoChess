@@ -1,6 +1,6 @@
 ﻿namespace NinoChess;
 
-public abstract record Move(BoardState Board, MoveInfo MoveInfo) : ICanMove, IHasMoveID
+public abstract record Move(FullBoardState Board, MoveInfo MoveInfo) : ICanMove, IHasMoveID
 {
     public abstract void Execute();
     public abstract bool IsValid();

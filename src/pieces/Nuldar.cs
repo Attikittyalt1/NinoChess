@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace NinoChess.Pieces;
 
-class Nuldar(BoardState board, Position position, Transformation orientation, Allegience allegience) : Piece(board, position, orientation, allegience)
+class Nuldar(FullBoardState boardState) : Piece(boardState)
 {
     public override RegistryID ID => PieceID.Nuldar;
     public override int MaxMoveRange => 3;

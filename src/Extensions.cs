@@ -2,6 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
+using System.IO;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace NinoChess;
 
@@ -68,7 +71,7 @@ public static class MyExtensions
         public void RemoveService<T>() => container.RemoveService(typeof(T));
         public void RemoveService<T>(bool promote) => container.RemoveService(typeof(T), promote);
 
-        public T? GetService<T>(EventHandler eventHandler) => (T?)container.GetService(typeof(T));
+        public T? GetService<T>() => (T?)container.GetService(typeof(T));
         public T GetService<T>(object defaultServiceInstance) => (T)container.GetService(typeof(T), defaultServiceInstance);
         public T GetService<T>(object defaultServiceInstance, bool promote) => (T)container.GetService(typeof(T), defaultServiceInstance, promote);
 

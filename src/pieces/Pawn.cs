@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 namespace NinoChess.Pieces;
 
-class Pawn(BoardState board, Position position, Transformation orientation, Allegience allegience) : Piece(board, position, orientation, allegience)
+class Pawn(FullBoardState boardState) : Piece(boardState)
 {
     public override RegistryID ID => PieceID.Pawn;
     public override int MaxMoveRange => 2;

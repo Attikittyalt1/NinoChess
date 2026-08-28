@@ -6,9 +6,18 @@ using System.Linq;
 
 namespace NinoChess;
 
+public abstract class BoardStateEvent(FullBoardState currentBoardState) : EventArgs, IBoardStateMutation
+{
+    public abstract void Execute();
+
+    public EventArgs GetEventArgs() => this;
+
+    public abstract IBoardStateMutation GetInverse();
+}
+
 public interface IBoardStateMutation
 {
-    public void Execute(BoardStateData data);
+    public void Execute();
 
     public EventArgs GetEventArgs();
 

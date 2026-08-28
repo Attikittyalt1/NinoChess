@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace NinoChess.Pieces;
 
-class Moog(BoardState board, Position position, Transformation orientation, Allegience allegience) : Piece(board, position, orientation, allegience)
+class Moog(FullBoardState boardState) : Piece(boardState)
 {
     public override RegistryID ID => PieceID.Moog;
     public override int MaxMoveRange => Range;

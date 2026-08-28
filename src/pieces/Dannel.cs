@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace NinoChess.Pieces;
 
-class Dannel(BoardState board, Position position, Transformation orientation, Allegience allegience) : Piece(board, position, orientation, allegience)
+class Dannel(FullBoardState boardState) : Piece(boardState)
 {
     public override RegistryID ID => PieceID.Dannel;
     public override int MaxMoveRange => 2;

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace NinoChess.Pieces;
 
-class Bishop(BoardState board, Position position, Transformation orientation, Allegience allegience) : Piece(board, position, orientation, allegience)
+class Bishop(FullBoardState boardState) : Piece(boardState)
 {
     public override RegistryID ID => PieceID.Bishop;
     public override int MaxMoveRange => Range;

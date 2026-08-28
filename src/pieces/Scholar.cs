@@ -1,36 +1,29 @@
 ﻿using NinoChess.Moves;
+using NinoChess.Mutations;
 using System;
 using System.Collections.Generic;
 
 namespace NinoChess.Pieces;
 
-class Scholar(BoardState board, Position position, Transformation orientation, Allegience allegience) : Piece(board, position, orientation, allegience)
+class Scholar(FullBoardState boardState) : Piece<Scholar.ScholarData>(boardState)
 {
+    public sealed class ScholarData : ICloneable
+    {
+        public Mode CurrentMode { get; set; }
+        public object Clone() => new ScholarData() { CurrentMode = CurrentMode };
+    }
     public enum Mode
     {
         Agile = 0,
         Aggressive = 1
     }
 
-    public override void OnSwap(BoardState.PieceSwapInfo info)
-    {
-        if (Board.HasPieceAt(info.P1) && Board.HasPieceAt(info.P2))
-        {
-            CurrentMode = CurrentMode switch
-            {
-                Mode.Agile => Mode.Aggressive,
-                Mode.Aggressive => Mode.Agile,
-                var mode => mode
-            };
-        }
-    }
-
     public override RegistryID ID => PieceID.Scholar;
     public override int MaxMoveRange => Range;
     public static int Range => 3;
 
-    public Mode CurrentMode = Mode.Agile;
-    public override int CurrentTokenIndex => (int)CurrentMode;
+    public override ScholarData GetDefaultData() => new() { CurrentMode = Mode.Agile };
+    public override int CurrentTokenIndex => (int)CustomData.CurrentMode;
 
     public override IEnumerable<Move> GetMovesAt(Position p)
     {
@@ -48,15 +41,35 @@ class Scholar(BoardState board, Position position, Transformation orientation, A
             relativePos.IsInDirection(Position.NE, 2, 2, true, true)
             )
         {
-            if (CurrentMode == Mode.Agile)
+            if (CustomData.CurrentMode == Mode.Agile)
             {
                 yield return new MoveUnblockable(Board, new(Position, p));
             }
 
-            if (CurrentMode == Mode.Aggressive)
+            if (CustomData.CurrentMode == Mode.Aggressive)
             {
                 yield return new AttackUnblockable(Board, new(Position, p));
             }
+        }
+    }
+
+    public override void OnSwap(Mutation_Swap eventInfo)
+    {
+        if (Board.Data.Board.HasPieceAt(eventInfo.Pos.Item1) && Board.Data.Board.HasPieceAt(eventInfo.Pos.Item2))
+        {
+            var newMode = CustomData.CurrentMode switch
+            {
+                Mode.Agile => Mode.Aggressive,
+                Mode.Aggressive => Mode.Agile,
+                var mode => mode
+            };
+
+            Board.MutationHandler.Execute(new Mutation_SetCustomData
+            (
+                currentBoardState: boardState,
+                target: Position,
+                data: new ScholarData() { CurrentMode = newMode}
+            ));
         }
     }
 }

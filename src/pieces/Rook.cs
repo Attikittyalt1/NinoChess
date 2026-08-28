@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace NinoChess.Pieces;
 
-class Rook(BoardState board, Position position, Transformation orientation, Allegience allegience) : Piece(board, position, orientation, allegience)
+class Rook(FullBoardState boardState) : Piece(boardState)
 {
     public override RegistryID ID => PieceID.Rook;
     public override int MaxMoveRange => Range;

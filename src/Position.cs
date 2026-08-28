@@ -1,6 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using MathNet.Numerics;
 using Microsoft.Xna.Framework;
+using System;
+using System.Collections.Generic;
 
 namespace NinoChess;
 
@@ -95,6 +96,26 @@ public readonly record struct Position(int X, int Y)
 
     public static Position MultiplyComponentWise(Position p1, Position p2) => new(p1.X * p2.X, p1.Y * p2.Y);
     public static int Dot(Position p1, Position p2) => p1.X * p2.X + p1.Y * p2.Y;
+    public static bool SatisfiesBetween(Position p1, Position p2, Predicate<Position> predicate)
+    {
+        var diff = p2 - p1;
+        var GCD = (int)Euclid.GreatestCommonDivisor(diff.X, diff.Y);
+
+        var step = diff / GCD;
+        var current = p1;
+
+        for (int i = 1; i < GCD; i++)
+        {
+            current += step;
+            if (predicate(current))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 
     public override string ToString()
     {

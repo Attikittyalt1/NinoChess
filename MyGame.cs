@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using NinoChess.Moves;
+using NinoChess.Mutations;
 using NinoChess.Pieces;
 using System;
 using System.Collections.Generic;
@@ -23,7 +24,7 @@ public class MyGame : Game
     private Dictionary<MoveID, Color> _moveColors;
 
     private Grid? _grid;
-    private BoardState? _board;
+    private FullBoardState? _boardState;
 
     private Position _gridOffset => Position.Zero;
     private Position _gridCellSize => Position.Unit * 64;
@@ -49,7 +50,7 @@ public class MyGame : Game
     protected override void Initialize()
     {
         _grid = new(8);
-        _board = new(_grid);
+        _boardState = new(_grid);
 
         SetupBoard();
 
@@ -62,7 +63,7 @@ public class MyGame : Game
             {
                 var pos = ConvertPixelPositionToGridPosition(handler.InitialPosition);
 
-                if (_board.ContainsPosition(pos) && _board.HasPieceAt(pos))
+                if (_grid.ContainsPosition(pos) && _grid.HasPieceAt(pos))
                 {
                     handler.DraggingData = new(true, pos);
                     return;
@@ -86,9 +87,9 @@ public class MyGame : Game
             {
                 var pos = ConvertPixelPositionToGridPosition(handler.CurrentPosition);
 
-                if (_board.ContainsPosition(pos) && _board.IsValidMove(new(data.InitialPiecePosition, pos)))
+                if (_grid.ContainsPosition(pos) && _boardState.Data.IsValidMove(new(data.InitialPiecePosition, pos)))
                 {
-                    _board.ExecuteMove(data.InitialPiecePosition, pos);
+                    _boardState.MutationHandler.Execute(new(data.InitialPiecePosition, pos));
                     return;
                 }
             }
@@ -104,43 +105,43 @@ public class MyGame : Game
 
     private void SetupBoard()
     {
-        Create(new Pawn(_board, new(0, 1), Transformation.Identity, Allegience.White));
-        Create(new Pawn(_board, new(1, 1), Transformation.Identity, Allegience.White));
-        Create(new Pawn(_board, new(2, 1), Transformation.Identity, Allegience.White));
-        Create(new Pawn(_board, new(3, 1), Transformation.Identity, Allegience.White));
-        Create(new Pawn(_board, new(4, 1), Transformation.Identity, Allegience.White));
-        Create(new Pawn(_board, new(5, 1), Transformation.Identity, Allegience.White));
-        Create(new Pawn(_board, new(6, 1), Transformation.Identity, Allegience.White));
-        Create(new Pawn(_board, new(7, 1), Transformation.Identity, Allegience.White));
-        Create(new Rook(_board, new(0, 0), Transformation.Identity, Allegience.White));
-        Create(new Knight(_board, new(1, 0), Transformation.Identity, Allegience.White));
-        Create(new Scholar(_board, new(2, 0), Transformation.Identity, Allegience.White));
-        Create(new King(_board, new(3, 0), Transformation.Identity, Allegience.White));
-        Create(new Moog(_board, new(4, 0), Transformation.Identity, Allegience.White));
-        Create(new Scholar(_board, new(5, 0), Transformation.Identity, Allegience.White));
-        Create(new Knight(_board, new(6, 0), Transformation.Identity, Allegience.White));
-        Create(new Rook(_board, new(7, 0), Transformation.Identity, Allegience.White));
+        Create(new Pawn(_boardState) { Position = new(0, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Pawn(_boardState) { Position = new(1, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Pawn(_boardState) { Position = new(2, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Pawn(_boardState) { Position = new(3, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Pawn(_boardState) { Position = new(4, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Pawn(_boardState) { Position = new(5, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Pawn(_boardState) { Position = new(6, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Pawn(_boardState) { Position = new(7, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Rook(_boardState) { Position = new(0, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Knight(_boardState) { Position = new(1, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Bishop(_boardState) { Position = new(2, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Moog(_boardState) { Position = new(3, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new King(_boardState) { Position = new(4, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Bishop(_boardState) { Position = new(5, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Knight(_boardState) { Position = new(6, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Rook(_boardState) { Position = new(7, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
 
-        Create(new Pawn(_board, new(0, 6), Transformation.Flip, Allegience.Black));
-        Create(new Pawn(_board, new(1, 6), Transformation.Flip, Allegience.Black));
-        Create(new Pawn(_board, new(2, 6), Transformation.Flip, Allegience.Black));
-        Create(new Dannel(_board, new(3, 6), Transformation.Flip, Allegience.Black));
-        Create(new Dannel(_board, new(4, 6), Transformation.Flip, Allegience.Black));
-        Create(new Pawn(_board, new(5, 6), Transformation.Flip, Allegience.Black));
-        Create(new Pawn(_board, new(6, 6), Transformation.Flip, Allegience.Black));
-        Create(new Pawn(_board, new(7, 6), Transformation.Flip, Allegience.Black));
-        Create(new Rook(_board, new(0, 7), Transformation.Flip, Allegience.Black));
-        Create(new Knight(_board, new(1, 7), Transformation.Flip, Allegience.Black));
-        Create(new Scholar(_board, new(2, 7), Transformation.Flip, Allegience.Black));
-        Create(new King(_board, new(3, 7), Transformation.Flip, Allegience.Black));
-        Create(new Moog(_board, new(4, 7), Transformation.Flip, Allegience.Black));
-        Create(new Scholar(_board, new(5, 7), Transformation.Flip, Allegience.Black));
-        Create(new Knight(_board, new(6, 7), Transformation.Flip, Allegience.Black));
-        Create(new Rook(_board, new(7, 7), Transformation.Flip, Allegience.Black));
+        Create(new Pawn(_boardState) { Position = new(0, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Pawn(_boardState) { Position = new(1, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Pawn(_boardState) { Position = new(2, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Pawn(_boardState) { Position = new(3, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Pawn(_boardState) { Position = new(4, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Pawn(_boardState) { Position = new(5, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Pawn(_boardState) { Position = new(6, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Pawn(_boardState) { Position = new(7, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Rook(_boardState) { Position = new(0, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Knight(_boardState) { Position = new(1, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Bishop(_boardState) { Position = new(2, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Moog(_boardState) { Position = new(3, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new King(_boardState) { Position = new(4, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Bishop(_boardState) { Position = new(5, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Knight(_boardState) { Position = new(6, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Rook(_boardState) { Position = new(7, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black });
 
         void Create(Piece piece)
         {
-            _board.CreatePieceAt(piece.Position, new(piece));
+            _boardState.MutationHandler.Execute(new Mutation_Create(_boardState, piece));
         }
     }
 
@@ -242,7 +243,7 @@ public class MyGame : Game
 
             var pixelPosition = draggingHandler.CurrentPosition + ConvertGridPositionToPixelPosition(piecePosition) - draggingHandler.InitialPosition;
 
-            DrawPiece(pixelPosition, _board.GetPieceAt(piecePosition));
+            DrawPiece(pixelPosition, _grid.GetPieceAt(piecePosition));
 
             DrawPieceMoves(piecePosition);
         }
@@ -263,7 +264,7 @@ public class MyGame : Game
         {
             DrawTile(position);
 
-            bool isEmpty = _board.IsEmpty(position) || (draggingHandler.IsDragging && (draggingHandler.DraggingData?.IsDraggingPiece ?? false) && draggingHandler.DraggingData.InitialPiecePosition == position);
+            bool isEmpty = !_grid.HasPieceAt(position) || (draggingHandler.IsDragging && (draggingHandler.DraggingData?.IsDraggingPiece ?? false) && draggingHandler.DraggingData.InitialPiecePosition == position);
 
             if (!isEmpty)
             {
@@ -293,12 +294,12 @@ public class MyGame : Game
 
     private void DrawPiece(Position gridPos)
     {
-        DrawPiece(ConvertGridPositionToPixelPosition(gridPos), _board.GetPieceAt(gridPos));
+        DrawPiece(ConvertGridPositionToPixelPosition(gridPos), _grid.GetPieceAt(gridPos));
     }
 
     private void DrawPieceMoves(Position gridPos)
     {
-        foreach (var move in _board.GetValidMovesFrom(gridPos))
+        foreach (var move in _boardState.Data.GetValidMovesFrom(gridPos))
         {
             if (_moveColors.TryGetValue((MoveID)(Enum)move.ID, out var color))
             {
