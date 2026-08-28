@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace NinoChess;
 
@@ -74,7 +75,9 @@ class BoardState(IBoard board)
 
     public IEnumerable<Move> GetValidMovesFrom(Position p)
     {
-        throw new NotImplementedException();
+        var piece = board.GetPieceAt(p);
+
+        return Position.Range(p - Position.Unit * piece.MaxMoveRange, Position.Unit * (1 + 2 * piece.MaxMoveRange)).Where(pos => board.ContainsPosition(pos) && piece.HasValidMoveAt(pos)).Select(piece.GetBestValidMoveAt);
     }
 
     public IEnumerable<Move> GetValidMovesTo(Position p)

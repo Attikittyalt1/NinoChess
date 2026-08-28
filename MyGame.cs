@@ -6,6 +6,7 @@ using NinoChess.Moves;
 using NinoChess.Pieces;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace NinoChess;
@@ -24,10 +25,10 @@ public class MyGame : Game
     private Grid? _grid;
     private BoardState? _board;
 
-    private Position _gridOffset => Position.Unit;
+    private Position _gridOffset => Position.Zero;
     private Position _gridCellSize => Position.Unit * 64;
     private Position _gridBorderSize => Position.Unit * 2;
-    private Point _textureSize => _gridCellSize;
+    private Point _textureSize => Position.Unit * 64;
 
     record PieceDraggingData(bool IsDraggingPiece, Position InitialPiecePosition) : IDisposable
     {
@@ -96,6 +97,7 @@ public class MyGame : Game
         InitializeWindow();
 
         AddPieces();
+        AddMoves();
 
         base.Initialize();
     }
@@ -190,6 +192,22 @@ public class MyGame : Game
         }
     }
 
+    private void AddMoves()
+    {
+        _moveColors = [];
+        _moveColors.Add(MoveID.AttackBlockable, Color.FromHSV(0f, 1f, 1f));
+        _moveColors.Add(MoveID.AttackUnblockable, Color.FromHSV(0f, 0.6f, 1f));
+        _moveColors.Add(MoveID.RangedAttackUnblockable, Color.FromHSV(30, 0.6f, 1f));
+        _moveColors.Add(MoveID.MoveBlockable, Color.FromHSV(200f, 1f, 1f));
+        _moveColors.Add(MoveID.FirstMoveBlockable, Color.FromHSV(200f, 1f, 1f));
+        _moveColors.Add(MoveID.MoveUnblockable, Color.FromHSV(200f, 0.6f, 1f));
+        _moveColors.Add(MoveID.MoveOrAttackBlockable, Color.FromHSV(270f, 1f, 1f));
+        _moveColors.Add(MoveID.MoveOrAttackUnblockable, Color.FromHSV(270f, 0.6f, 1f));
+        _moveColors.Add(MoveID.SwapBlockable, Color.FromHSV(310, 1f, 1f));
+        _moveColors.Add(MoveID.MoveOrSwapBlockable, Color.FromHSV(310, 0.6f, 1f));
+        _moveColors.Add(MoveID.AlternateSwapUnblockable, Color.FromHSV(330, 0.6f, 1f));
+    }
+
     protected override void Update(GameTime gameTime)
     {
         UpdateInputs(gameTime);
@@ -225,7 +243,8 @@ public class MyGame : Game
             var pixelPosition = draggingHandler.CurrentPosition + ConvertGridPositionToPixelPosition(piecePosition) - draggingHandler.InitialPosition;
 
             DrawPiece(pixelPosition, _board.GetPieceAt(piecePosition));
-            
+
+            DrawPieceMoves(piecePosition);
         }
 
         _spriteBatch.End();
@@ -275,6 +294,18 @@ public class MyGame : Game
     private void DrawPiece(Position gridPos)
     {
         DrawPiece(ConvertGridPositionToPixelPosition(gridPos), _board.GetPieceAt(gridPos));
+    }
+
+    private void DrawPieceMoves(Position gridPos)
+    {
+        foreach (var move in _board.GetValidMovesFrom(gridPos))
+        {
+            if (_moveColors.TryGetValue((MoveID)(Enum)move.ID, out var color))
+            {
+                Debug.WriteLine("test");
+                DrawBorder(move.Target, color);
+            }
+        }
     }
 
     private void DrawPiece(Position pixelPos, Piece piece)

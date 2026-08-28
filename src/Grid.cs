@@ -19,7 +19,7 @@ class Grid(Position Dimensions) : IBoard
     public int Size => _pieces.Length;
     public IEnumerable<Position> GetValidPositions() => Position.Range(Position.Zero, Dimensions);
 
-    public bool ContainsPosition(Position p) => p.IsBetween(Position.Zero, Dimensions);
+    public bool ContainsPosition(Position p) => p.IsBetween(Position.Zero, Dimensions, true, false);
     public bool HasPieceAt(Position p) => _pieces[p.X, p.Y] is not null;
     public Piece GetPieceAt(Position p) => _pieces[p.X, p.Y] ?? throw new NullReferenceException();
 

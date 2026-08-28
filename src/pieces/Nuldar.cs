@@ -8,7 +8,7 @@ namespace NinoChess.Pieces;
 class Nuldar(BoardState board, Position position, Transformation orientation, Allegience allegience) : Piece(board, position, orientation, allegience)
 {
     public override RegistryID ID => PieceID.Nuldar;
-    public override int MaxMoveRange => 2;
+    public override int MaxMoveRange => 3;
 
     private static List<Position> SwappablePositions => [
             new(1, 0), new(2, 0), new(3, 0), new(2, 1), new(2, -1)
