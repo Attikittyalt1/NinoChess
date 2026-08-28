@@ -8,6 +8,11 @@ namespace NinoChess;
 
 public abstract class BoardStateEvent(FullBoardState currentBoardState) : EventArgs, IBoardStateMutation
 {
+    public void InvokeOnto(object? handler)
+    {
+        handler?.GetType().GetMethod("Invoke").Invoke(this, [this, GetEventArgs()]);
+    }
+
     public abstract void Execute();
 
     public EventArgs GetEventArgs() => this;

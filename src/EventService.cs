@@ -11,6 +11,8 @@ public class EventService
 
     public EventHandler<T>? Get<T>() => (EventHandler<T>?) _eventHandlers.GetValueOrDefault(typeof(T));
 
+    public object? Get(Type t) => _eventHandlers.GetValueOrDefault(t);
+
     public void Add<T>(EventHandler<T> eventHandler)
     {
         _eventHandlers[typeof(T)] = Delegate.Combine(Get<T>(), eventHandler);

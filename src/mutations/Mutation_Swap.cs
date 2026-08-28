@@ -17,6 +17,9 @@ public class Mutation_Swap(FullBoardState currentBoardState, (Position, Position
 
         currentBoardState.Data.Board.TryGetPieceAt(pos.Item1)?.HasMoved = NewHasMoved.Item1;
         currentBoardState.Data.Board.TryGetPieceAt(pos.Item2)?.HasMoved = NewHasMoved.Item2;
+
+        currentBoardState.Data.Board.TryGetPieceAt(pos.Item1)?.OnSwap(this);
+        currentBoardState.Data.Board.TryGetPieceAt(pos.Item2)?.OnSwap(this);
     }
 
 

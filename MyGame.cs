@@ -31,6 +31,9 @@ public class MyGame : Game
     private Position _gridBorderSize => Position.Unit * 2;
     private Point _textureSize => Position.Unit * 64;
 
+    private bool _undoPrevDown = false;
+    private bool _redoPrevDown = false;
+
     record PieceDraggingData(bool IsDraggingPiece, Position InitialPiecePosition) : IDisposable
     {
         public void Dispose()
@@ -89,7 +92,7 @@ public class MyGame : Game
 
                 if (_grid.ContainsPosition(pos) && _boardState.Data.IsValidMove(new(data.InitialPiecePosition, pos)))
                 {
-                    _boardState.MutationHandler.Execute(new(data.InitialPiecePosition, pos));
+                    _boardState.MutationHandler.Do(new(data.InitialPiecePosition, pos));
                     return;
                 }
             }
@@ -115,10 +118,10 @@ public class MyGame : Game
         Create(new Pawn(_boardState) { Position = new(7, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
         Create(new Rook(_boardState) { Position = new(0, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
         Create(new Knight(_boardState) { Position = new(1, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
-        Create(new Bishop(_boardState) { Position = new(2, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Scholar(_boardState) { Position = new(2, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
         Create(new Moog(_boardState) { Position = new(3, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
         Create(new King(_boardState) { Position = new(4, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
-        Create(new Bishop(_boardState) { Position = new(5, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Scholar(_boardState) { Position = new(5, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
         Create(new Knight(_boardState) { Position = new(6, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
         Create(new Rook(_boardState) { Position = new(7, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
 
@@ -132,16 +135,16 @@ public class MyGame : Game
         Create(new Pawn(_boardState) { Position = new(7, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
         Create(new Rook(_boardState) { Position = new(0, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black });
         Create(new Knight(_boardState) { Position = new(1, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black });
-        Create(new Bishop(_boardState) { Position = new(2, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Scholar(_boardState) { Position = new(2, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black });
         Create(new Moog(_boardState) { Position = new(3, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black });
         Create(new King(_boardState) { Position = new(4, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black });
-        Create(new Bishop(_boardState) { Position = new(5, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Scholar(_boardState) { Position = new(5, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black });
         Create(new Knight(_boardState) { Position = new(6, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black });
         Create(new Rook(_boardState) { Position = new(7, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black });
 
         void Create(Piece piece)
         {
-            _boardState.MutationHandler.Execute(new Mutation_Create(_boardState, piece));
+            new Mutation_Create(_boardState, piece).Execute();
         }
     }
 
@@ -227,6 +230,28 @@ public class MyGame : Game
             Exit();
 
         draggingHandler.Update(gameTime, mouseState);
+
+        if (_undoPrevDown != keyboardState.IsKeyDown(Keys.Z))
+        {
+            if (_undoPrevDown == true)
+            {
+                _boardState.MutationHandler.Undo();
+            }
+
+            _undoPrevDown = keyboardState.IsKeyDown(Keys.Z);
+        }
+
+        
+
+        if (_redoPrevDown != keyboardState.IsKeyDown(Keys.Y))
+        {
+            if (_redoPrevDown == true)
+            {
+                _boardState.MutationHandler.Redo();
+            }
+
+            _redoPrevDown = keyboardState.IsKeyDown(Keys.Y);
+        }
     }
 
     protected override void Draw(GameTime gameTime)

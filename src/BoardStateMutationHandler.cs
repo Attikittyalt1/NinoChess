@@ -8,28 +8,83 @@ namespace NinoChess;
 
 public class BoardStateMutationHandler(BoardStateData boardState)
 {
-    private List<IBoardStateMutation> _previousBoardMutations = [];
-    private List<IBoardStateMutation> _boardMutations = [];
+    private List<IBoardStateMutation> _inverseBoardMutations = [];
+    private readonly Stack<List<IBoardStateMutation>> _undoStack = [];
+    private readonly Stack<List<IBoardStateMutation>> _redoStack = [];
 
-    public ReadOnlyCollection<IBoardStateMutation> RecentBoardMutations => _previousBoardMutations.AsReadOnly();
     public EventService MutationEvents = new();
 
 
-    public void Execute<T>(T mutation)
+    public void Execute<T>(T mutation, bool addToUndoStack = true)
         where T : EventArgs, IBoardStateMutation
     {
-        mutation.Execute();
+        if (addToUndoStack)
+        {
+            _inverseBoardMutations.Add(mutation.GetInverse());
+        }
 
-        _boardMutations.Add(mutation);
+        mutation.Execute();
 
         MutationEvents.Get<T>()?.Invoke(this, (T) mutation.GetEventArgs());
     }
 
-    public void Execute(MoveInfo moveInfo)
+    public void Execute(BoardStateEvent mutation, bool addToUndoStack = true)
+    {
+        if (addToUndoStack)
+        {
+            _inverseBoardMutations.Add(mutation.GetInverse());
+        }
+
+        mutation.Execute();
+
+        // not ideal. change this
+        mutation.InvokeOnto(MutationEvents.Get(mutation.GetType()));
+    }
+
+    public void Do(MoveInfo moveInfo)
     {
         boardState.Board.GetPieceAt(moveInfo.Origin).GetBestValidMoveAt(moveInfo.Target).Execute();
 
-        _previousBoardMutations = _boardMutations;
-        _boardMutations = [];
+        _undoStack.Push(_inverseBoardMutations);
+        _inverseBoardMutations = [];
+
+        _redoStack.Clear();
+    }
+
+    public void Undo()
+    {
+        if (_undoStack.Count == 0)
+        {
+            return;
+        }
+
+        var operations = _undoStack.Pop();
+        operations.Reverse();
+
+        foreach (var mutation in operations)
+        {
+            Execute((BoardStateEvent)mutation);
+        }
+
+        _redoStack.Push(_inverseBoardMutations);
+        _inverseBoardMutations = [];
+    }
+    public void Redo()
+    {
+        if (_redoStack.Count == 0)
+        {
+            return;
+        }
+
+        var operations = _redoStack.Pop();
+        operations.Reverse();
+
+        foreach (var mutation in operations)
+        {
+            Execute((BoardStateEvent)mutation);
+        }
+
+        _undoStack.Push(_inverseBoardMutations);
+        _inverseBoardMutations = [];
     }
 }

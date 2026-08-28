@@ -8,6 +8,7 @@ public class Mutation_Destroy(FullBoardState currentBoardState, Position target)
 
     public override void Execute()
     {
+        currentBoardState.Data.Board.GetPieceAt(target).OnDestroy(this);
         currentBoardState.Data.Board.RemovePieceAt(target);
     }
 
