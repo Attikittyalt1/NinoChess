@@ -18,7 +18,7 @@ class Scholar : Piece
         {
             var info = (BoardState.PieceSwapInfo)e;
 
-            if (board.TryGetPieceAt(info.P1) is Scholar && board.TryGetPieceAt(info.P2) is Scholar)
+            if (board.HasPieceAt(info.P1) && board.HasPieceAt(info.P2))
             {
                 CurrentMode = CurrentMode switch
                 {
