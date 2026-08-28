@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace NinoChess;
 
@@ -37,11 +38,9 @@ abstract class Piece(BoardState board, Position position, Transformation orienta
 
     public Position ToAbsolutePosition(Position p) => orientation.Inverse * p + position;
 
-    public EventHandler? OnCreate;
-
-    public EventHandler? OnDestroy;
-
-    public EventHandler? OnSwap;
+    public virtual void OnCreate(BoardState.PieceCreationInfo info) { }
+    public virtual void OnDestroy(BoardState.PieceDestructionInfo info) { }
+    public virtual void OnSwap(BoardState.PieceSwapInfo info) { }
 }
 
 interface IHasMoves

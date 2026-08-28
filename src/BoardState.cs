@@ -15,6 +15,8 @@ class BoardState(IBoard board)
 
     private List<EventArgs> _recentBoardUpdates = [];
     private List<EventArgs> _newBoardUpdates = [];
+
+    public EventHandler? OnDestroy;
     public class PieceDestructionInfo(Piece piece) : EventArgs
     {
         public Piece Piece => piece;
@@ -25,9 +27,11 @@ class BoardState(IBoard board)
 
         _newBoardUpdates.Add(info);
 
-        info.Piece.OnDestroy?.Invoke(this, info);
+        OnDestroy?.Invoke(this, info);
+        info.Piece.OnDestroy(info);
     }
 
+    public EventHandler? OnCreate;
     public class PieceCreationInfo(Piece piece) : EventArgs
     {
         public Piece Piece => piece;
@@ -38,9 +42,11 @@ class BoardState(IBoard board)
 
         _newBoardUpdates.Add(info);
 
-        info.Piece.OnCreate?.Invoke(this, info);
+        OnCreate?.Invoke(this, info);
+        info.Piece.OnCreate(info);
     }
 
+    public EventHandler? OnSwap;
     public class PieceSwapInfo(Position p1, Position p2) : EventArgs
     {
         public Position P1 => p1;
@@ -54,8 +60,9 @@ class BoardState(IBoard board)
 
         _newBoardUpdates.Add(info);
 
-        TryGetPieceAt(p1)?.OnSwap?.Invoke(this, info);
-        TryGetPieceAt(p2)?.OnSwap?.Invoke(this, info);
+        OnSwap?.Invoke(this, info);
+        TryGetPieceAt(p1)?.OnSwap(info);
+        TryGetPieceAt(p2)?.OnSwap(info);
     }
 
     public ReadOnlyCollection<EventArgs> RecentBoardUpdates => _recentBoardUpdates.AsReadOnly();

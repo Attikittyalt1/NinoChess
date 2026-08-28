@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace NinoChess.Pieces;
 
-class Scholar : Piece
+class Scholar(BoardState board, Position position, Transformation orientation, Allegience allegience) : Piece(board, position, orientation, allegience)
 {
     public enum Mode
     {
@@ -12,22 +12,17 @@ class Scholar : Piece
         Aggressive = 1
     }
 
-    public Scholar(BoardState board, Position position, Transformation orientation, Allegience allegience) : base(board, position, orientation, allegience)
+    public override void OnSwap(BoardState.PieceSwapInfo info)
     {
-        OnSwap += (o, e) =>
+        if (Board.HasPieceAt(info.P1) && Board.HasPieceAt(info.P2))
         {
-            var info = (BoardState.PieceSwapInfo)e;
-
-            if (board.HasPieceAt(info.P1) && board.HasPieceAt(info.P2))
+            CurrentMode = CurrentMode switch
             {
-                CurrentMode = CurrentMode switch
-                {
-                    Mode.Agile => Mode.Aggressive,
-                    Mode.Aggressive => Mode.Agile,
-                    var mode => mode
-                };
-            }
-        };
+                Mode.Agile => Mode.Aggressive,
+                Mode.Aggressive => Mode.Agile,
+                var mode => mode
+            };
+        }
     }
 
     public override RegistryID ID => PieceID.Scholar;
