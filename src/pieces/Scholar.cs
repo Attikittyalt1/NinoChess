@@ -33,7 +33,7 @@ class Scholar(FullBoardState boardState) : Piece<Scholar.ScholarData>(boardState
             relativePos.IsInDirection(Position.N, 1, 1, true, true)
             )
         {
-            yield return new MoveOrSwapBlockable(Board, new(Position, p));
+            yield return new MoveOrSwapBlockable(BoardState, new(Position, p));
         }
 
         if (
@@ -43,19 +43,21 @@ class Scholar(FullBoardState boardState) : Piece<Scholar.ScholarData>(boardState
         {
             if (CustomData.CurrentMode == Mode.Agile)
             {
-                yield return new MoveUnblockable(Board, new(Position, p));
+                yield return new MoveUnblockable(BoardState, new(Position, p));
             }
 
             if (CustomData.CurrentMode == Mode.Aggressive)
             {
-                yield return new AttackUnblockable(Board, new(Position, p));
+                yield return new AttackUnblockable(BoardState, new(Position, p));
             }
         }
     }
 
     public override void OnSwap(Mutation_Swap eventInfo)
     {
-        if (Board.Data.Board.HasPieceAt(eventInfo.Pos.Item1) && Board.Data.Board.HasPieceAt(eventInfo.Pos.Item2))
+        base.OnSwap(eventInfo);
+
+        if (BoardState.Data.Board.HasPieceAt(eventInfo.Pos.Item1) && BoardState.Data.Board.HasPieceAt(eventInfo.Pos.Item2))
         {
             var newMode = CustomData.CurrentMode switch
             {
@@ -64,12 +66,13 @@ class Scholar(FullBoardState boardState) : Piece<Scholar.ScholarData>(boardState
                 var mode => mode
             };
 
-            Board.MutationHandler.Execute(new Mutation_SetCustomData
+            BoardState.MutationHandler.Execute(new Mutation_SetCustomData
             (
                 currentBoardState: boardState,
+                sender: this,
                 target: Position,
                 data: new ScholarData() { CurrentMode = newMode}
-            ));
+            ), false);
         }
     }
 }

@@ -17,7 +17,7 @@ class Bishop(FullBoardState boardState) : Piece(boardState)
             relativePos.IsInDirection(Position.NE, 1, Range, true, true)
             )
         {
-            yield return new MoveOrAttackBlockable(Board, new(Position, p));
+            yield return new MoveOrAttackBlockable(BoardState, new(Position, p));
         }
     }
 }

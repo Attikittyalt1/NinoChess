@@ -108,14 +108,14 @@ public class MyGame : Game
 
     private void SetupBoard()
     {
-        Create(new Pawn(_boardState) { Position = new(0, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
-        Create(new Pawn(_boardState) { Position = new(1, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
-        Create(new Pawn(_boardState) { Position = new(2, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
-        Create(new Pawn(_boardState) { Position = new(3, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
-        Create(new Pawn(_boardState) { Position = new(4, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
-        Create(new Pawn(_boardState) { Position = new(5, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
-        Create(new Pawn(_boardState) { Position = new(6, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
-        Create(new Pawn(_boardState) { Position = new(7, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Arab(_boardState) { Position = new(0, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Arab(_boardState) { Position = new(1, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Arab(_boardState) { Position = new(2, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Arab(_boardState) { Position = new(3, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Arab(_boardState) { Position = new(4, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Arab(_boardState) { Position = new(5, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Arab(_boardState) { Position = new(6, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
+        Create(new Arab(_boardState) { Position = new(7, 1), Orientation = Transformation.Identity, Allegience = Allegience.White });
         Create(new Rook(_boardState) { Position = new(0, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
         Create(new Knight(_boardState) { Position = new(1, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
         Create(new Scholar(_boardState) { Position = new(2, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
@@ -125,14 +125,14 @@ public class MyGame : Game
         Create(new Knight(_boardState) { Position = new(6, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
         Create(new Rook(_boardState) { Position = new(7, 0), Orientation = Transformation.Identity, Allegience = Allegience.White });
 
-        Create(new Pawn(_boardState) { Position = new(0, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
-        Create(new Pawn(_boardState) { Position = new(1, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
-        Create(new Pawn(_boardState) { Position = new(2, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
-        Create(new Pawn(_boardState) { Position = new(3, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
-        Create(new Pawn(_boardState) { Position = new(4, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
-        Create(new Pawn(_boardState) { Position = new(5, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
-        Create(new Pawn(_boardState) { Position = new(6, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
-        Create(new Pawn(_boardState) { Position = new(7, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Arab(_boardState) { Position = new(0, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Arab(_boardState) { Position = new(1, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Arab(_boardState) { Position = new(2, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Arab(_boardState) { Position = new(3, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Arab(_boardState) { Position = new(4, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Arab(_boardState) { Position = new(5, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Arab(_boardState) { Position = new(6, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
+        Create(new Arab(_boardState) { Position = new(7, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black });
         Create(new Rook(_boardState) { Position = new(0, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black });
         Create(new Knight(_boardState) { Position = new(1, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black });
         Create(new Scholar(_boardState) { Position = new(2, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black });
@@ -144,7 +144,7 @@ public class MyGame : Game
 
         void Create(Piece piece)
         {
-            new Mutation_Create(_boardState, piece).Execute();
+            new Mutation_Create(_boardState, this, piece).Execute();
         }
     }
 
@@ -176,6 +176,7 @@ public class MyGame : Game
         Add(PieceID.Dannel, new(4, 2), new(5, 2));
         Add(PieceID.Nuldar, new(6, 2), new(7, 2));
         AddWithTokens(PieceID.Scholar, new(0, 3), new(1, 3), [new(6, 0), new(7, 0)]);
+        Add(PieceID.Arab, new(2, 3), new(3, 3));
 
         void Add(PieceID id, Point primary, Point secondary)
         {

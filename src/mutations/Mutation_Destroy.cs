@@ -2,7 +2,7 @@
 
 namespace NinoChess.Mutations;
 
-public class Mutation_Destroy(FullBoardState currentBoardState, Position target) : BoardStateEvent(currentBoardState)
+public class Mutation_Destroy(FullBoardState currentBoardState, object? sender, Position target) : BoardStateEvent(currentBoardState, sender)
 {
     public Position Target => target;
 
@@ -12,5 +12,5 @@ public class Mutation_Destroy(FullBoardState currentBoardState, Position target)
         currentBoardState.Data.Board.RemovePieceAt(target);
     }
 
-    public override IBoardStateMutation GetInverse() => new Mutation_Create(currentBoardState, currentBoardState.Data.Board.GetPieceAt(target));
+    public override IBoardStateMutation GetInverse() => new Mutation_Create(currentBoardState, sender, currentBoardState.Data.Board.GetPieceAt(target));
 }

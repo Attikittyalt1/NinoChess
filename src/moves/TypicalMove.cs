@@ -1,5 +1,6 @@
 ﻿using NinoChess.Mutations;
 using System.Numerics;
+using System.Reflection;
 
 namespace NinoChess.Moves;
 
@@ -22,11 +23,14 @@ abstract record TypicalMove(FullBoardState BoardState, MoveInfo MoveInfo) : Move
 
     public override void Execute()
     {
+        var sender = BoardState.Data.Board.GetPieceAt(MoveInfo.Origin);
+
         if (DestroyTarget && BoardState.Data.Board.HasPieceAt(MoveInfo.Target))
         {
             Board.MutationHandler.Execute(new Mutation_Destroy
             (
                 currentBoardState: BoardState,
+                sender: sender,
                 target: MoveInfo.Target
             ));
         }
@@ -36,6 +40,7 @@ abstract record TypicalMove(FullBoardState BoardState, MoveInfo MoveInfo) : Move
             Board.MutationHandler.Execute(new Mutation_Swap
             (
                 currentBoardState: BoardState,
+                sender: sender,
                 pos: (EffectiveOrigin, MoveInfo.Target)
             ));
         }

@@ -2,7 +2,7 @@
 
 namespace NinoChess.Mutations;
 
-public class Mutation_SetCustomData(FullBoardState currentBoardState, Position target, object? data) : BoardStateEvent(currentBoardState)
+public class Mutation_SetCustomData(FullBoardState currentBoardState, object? sender, Position target, object? data) : BoardStateEvent(currentBoardState, sender)
 {
     public override void Execute()
     {
@@ -10,5 +10,5 @@ public class Mutation_SetCustomData(FullBoardState currentBoardState, Position t
     }
 
 
-    public override IBoardStateMutation GetInverse() => new Mutation_SetCustomData(currentBoardState, target, ((ICloneable?)currentBoardState.Data.Board.GetPieceAt(target)._customData)?.Clone());
+    public override IBoardStateMutation GetInverse() => new Mutation_SetCustomData(currentBoardState, sender, target, ((ICloneable?)currentBoardState.Data.Board.GetPieceAt(target)._customData)?.Clone());
 }

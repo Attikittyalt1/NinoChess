@@ -2,7 +2,7 @@
 
 namespace NinoChess.Mutations;
 
-public class Mutation_Swap(FullBoardState currentBoardState, (Position, Position) pos) : BoardStateEvent(currentBoardState)
+public class Mutation_Swap(FullBoardState currentBoardState, object? sender, (Position, Position) pos) : BoardStateEvent(currentBoardState, sender)
 {
     public (Position, Position) Pos => pos;
 
@@ -23,7 +23,7 @@ public class Mutation_Swap(FullBoardState currentBoardState, (Position, Position
     }
 
 
-    public override IBoardStateMutation GetInverse() => new Mutation_Swap(currentBoardState, pos) { NewHasMoved = (
+    public override IBoardStateMutation GetInverse() => new Mutation_Swap(currentBoardState, sender, pos) { NewHasMoved = (
         currentBoardState.Data.Board.TryGetPieceAt(pos.Item1)?.HasMoved ?? false,
         currentBoardState.Data.Board.TryGetPieceAt(pos.Item2)?.HasMoved ?? false
         )};

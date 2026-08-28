@@ -10,7 +10,7 @@ namespace NinoChess;
 public abstract class Piece(FullBoardState boardState) : IHasMoves, IHasPieceID
 {
     public abstract RegistryID ID { get; }
-    public FullBoardState Board { get => boardState; set => boardState = value; }
+    public FullBoardState BoardState { get => boardState; set => boardState = value; }
 
     public required Position Position { get; set; }
     public required Transformation Orientation { get; set; }
@@ -35,6 +35,7 @@ public abstract class Piece(FullBoardState boardState) : IHasMoves, IHasPieceID
     public Position ToRelativePosition(Position p) => Orientation * (p - Position);
 
     public Position ToAbsolutePosition(Position p) => Orientation.Inverse * p + Position;
+    public bool CanPromote() => BoardState.Data.Board.IsPromotableTerritoryFor(Position, Allegience);
 
     public virtual void OnCreate(Mutation_Create eventInfo) { }
     public virtual void OnDestroy(Mutation_Destroy eventInfo) { }

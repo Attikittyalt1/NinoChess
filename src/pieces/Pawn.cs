@@ -13,17 +13,17 @@ class Pawn(FullBoardState boardState) : Piece(boardState)
 
         if (relativePos == Position.N)
         {
-            yield return new MoveBlockable(Board, new(Position, p));
+            yield return new MoveBlockable(BoardState, new(Position, p));
         }
 
         if (relativePos == Position.N * 2)
         {
-            yield return new FirstMoveBlockable(Board, new(Position, p));
+            yield return new FirstMoveBlockable(BoardState, new(Position, p));
         }
 
         if (relativePos == Position.NW || relativePos == Position.NE)
         {
-            yield return new AttackBlockable(Board, new(Position, p));
+            yield return new AttackBlockable(BoardState, new(Position, p));
         }
     }
 }

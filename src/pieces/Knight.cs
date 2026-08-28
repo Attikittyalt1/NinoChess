@@ -17,7 +17,7 @@ class Knight(FullBoardState boardState) : Piece(boardState)
             relativePos.IsInDirection(Position.N + Position.NW, 1, 1, true, true)
             )
         {
-            yield return new MoveOrAttackUnblockable(Board, new(Position, p));
+            yield return new MoveOrAttackUnblockable(BoardState, new(Position, p));
         }
     }
 }

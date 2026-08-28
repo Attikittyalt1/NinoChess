@@ -6,11 +6,13 @@ using System.Linq;
 
 namespace NinoChess;
 
-public abstract class BoardStateEvent(FullBoardState currentBoardState) : EventArgs, IBoardStateMutation
+public abstract class BoardStateEvent(FullBoardState currentBoardState, object? sender) : EventArgs, IBoardStateMutation
 {
+    public object? Sender => sender;
+
     public void InvokeOnto(object? handler)
     {
-        handler?.GetType().GetMethod("Invoke").Invoke(this, [this, GetEventArgs()]);
+        handler?.GetType().GetMethod("Invoke").Invoke(this, [sender, GetEventArgs()]);
     }
 
     public abstract void Execute();

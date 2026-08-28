@@ -20,18 +20,18 @@ class Nuldar(FullBoardState boardState) : Piece(boardState)
 
         if (relativePos == Position.S || relativePos == Position.NW || relativePos == Position.NE)
         {
-            yield return new MoveBlockable(Board, new(Position, p));
+            yield return new MoveBlockable(BoardState, new(Position, p));
         }
 
         if (relativePos == Position.N)
         {
-            yield return new FirstMoveBlockable(Board, new(Position, p));
+            yield return new FirstMoveBlockable(BoardState, new(Position, p));
         }
 
         if (SwappablePositions.Any(pos => pos == relativePos with { X = Math.Abs(relativePos.X) }))
         {
 
-            yield return new AlternateSwapUnblockable(Board, new(Position, p), (p-Position).ReflectAcross(Orientation * Position.N) + Position);
+            yield return new AlternateSwapUnblockable(BoardState, new(Position, p), (p-Position).ReflectAcross(Orientation * Position.N) + Position);
         }
     }
 }
