@@ -3,15 +3,20 @@ using System.Linq;
 
 namespace NinoChess.Mutations;
 
-public class MutationBundle(FullBoardState currentBoardState, object? sender, IEnumerable<IBoardStateMutation> mutations) : BoardStateEvent(currentBoardState, sender)
+public class MutationBundle : IBoardStateMutation
 {
-    public override void Execute()
+    public required IEnumerable<IBoardStateMutation> Mutations { get; init; }
+
+    public void Execute()
     {
-        foreach (var mutation in mutations)
+        foreach (var mutation in Mutations)
         {
             mutation.Execute();
         }
     }
 
-    public override IBoardStateMutation GetInverse() => new MutationBundle(currentBoardState, sender, Enumerable.Reverse(mutations.Select(mutation => mutation.GetInverse())));
+    public IBoardStateMutation GetInverse() => new MutationBundle 
+    { 
+        Mutations = Enumerable.Reverse(Mutations.Select(mutation => mutation.GetInverse())) 
+    };
 }

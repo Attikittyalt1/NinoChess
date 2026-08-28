@@ -6,17 +6,14 @@ using System.Linq;
 
 namespace NinoChess;
 
-public class BoardStateMutationHandler(BoardStateData boardState)
+public class MutationService()
 {
     private List<IBoardStateMutation> _inverseBoardMutations = [];
     private readonly Stack<List<IBoardStateMutation>> _undoStack = [];
     private readonly Stack<List<IBoardStateMutation>> _redoStack = [];
 
-    public EventService MutationEvents = new();
-
-
     public void Execute<T>(T mutation, bool addToUndoStack = true)
-        where T : EventArgs, IBoardStateMutation
+        where T : IBoardStateMutation
     {
         if (addToUndoStack)
         {
@@ -24,27 +21,10 @@ public class BoardStateMutationHandler(BoardStateData boardState)
         }
 
         mutation.Execute();
-
-        MutationEvents.Get<T>()?.Invoke(this, (T) mutation.GetEventArgs());
     }
 
-    public void Execute(BoardStateEvent mutation, bool addToUndoStack = true)
+    public void Finish()
     {
-        if (addToUndoStack)
-        {
-            _inverseBoardMutations.Add(mutation.GetInverse());
-        }
-
-        mutation.Execute();
-
-        // not ideal. change this
-        mutation.InvokeOnto(MutationEvents.Get(mutation.GetType()));
-    }
-
-    public void Do(MoveInfo moveInfo)
-    {
-        boardState.Board.GetPieceAt(moveInfo.Origin).GetBestValidMoveAt(moveInfo.Target).Execute();
-
         _undoStack.Push(_inverseBoardMutations);
         _inverseBoardMutations = [];
 
@@ -60,7 +40,7 @@ public class BoardStateMutationHandler(BoardStateData boardState)
 
         foreach (var mutation in Enumerable.Reverse(_undoStack.Pop()))
         {
-            Execute((BoardStateEvent)mutation);
+            Execute(mutation);
         }
 
         _redoStack.Push(_inverseBoardMutations);
@@ -75,7 +55,7 @@ public class BoardStateMutationHandler(BoardStateData boardState)
 
         foreach (var mutation in Enumerable.Reverse(_redoStack.Pop()))
         {
-            Execute((BoardStateEvent)mutation);
+            Execute(mutation);
         }
 
         _undoStack.Push(_inverseBoardMutations);

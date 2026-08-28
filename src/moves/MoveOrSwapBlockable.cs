@@ -1,6 +1,6 @@
 ﻿namespace NinoChess.Moves;
 
-record MoveOrSwapBlockable(FullBoardState BoardState, MoveInfo MoveInfo) : TypicalMove(BoardState, MoveInfo)
+class MoveOrSwapBlockable : TypicalMove
 {
     public override RegistryID ID => MoveID.MoveOrSwapBlockable;
     public override bool CanTargetEnemy => true;

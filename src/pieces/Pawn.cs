@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 namespace NinoChess.Pieces;
 
-class Pawn(FullBoardState boardState) : Piece(boardState)
+class Pawn : Piece
 {
     public override RegistryID ID => PieceID.Pawn;
     public override int MaxMoveRange => 2;
@@ -13,17 +13,29 @@ class Pawn(FullBoardState boardState) : Piece(boardState)
 
         if (relativePos == Position.N)
         {
-            yield return new MoveBlockable(BoardState, new(Position, p));
+            yield return new MoveBlockable
+            {
+                BoardState = BoardState,
+                MoveInfo = new(Position, p)
+            };
         }
 
         if (relativePos == Position.N * 2)
         {
-            yield return new FirstMoveBlockable(BoardState, new(Position, p));
+            yield return new FirstMoveBlockable
+            {
+                BoardState = BoardState,
+                MoveInfo = new(Position, p)
+            };
         }
 
         if (relativePos == Position.NW || relativePos == Position.NE)
         {
-            yield return new AttackBlockable(BoardState, new(Position, p));
+            yield return new AttackBlockable
+            {
+                BoardState = BoardState,
+                MoveInfo = new(Position, p)
+            };
         }
     }
 }

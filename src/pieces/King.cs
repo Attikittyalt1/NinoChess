@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace NinoChess.Pieces;
 
-class King(FullBoardState boardState) : Piece(boardState)
+class King : Piece
 {
     public override RegistryID ID => PieceID.King;
     public override int MaxMoveRange => Range;
@@ -18,7 +18,11 @@ class King(FullBoardState boardState) : Piece(boardState)
             relativePos.IsInDirection(Position.NE, 1, Range, true, true)
             )
         {
-            yield return new MoveOrAttackBlockable(BoardState, new(Position, p));
+            yield return new MoveOrAttackBlockable
+            {
+                BoardState = BoardState,
+                MoveInfo = new(Position, p)
+            };
         }
     }
 }

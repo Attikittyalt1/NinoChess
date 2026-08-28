@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace NinoChess.Pieces;
 
-class Nuldar(FullBoardState boardState) : Piece(boardState)
+class Nuldar : Piece
 {
     public override RegistryID ID => PieceID.Nuldar;
     public override int MaxMoveRange => 3;
@@ -20,18 +20,30 @@ class Nuldar(FullBoardState boardState) : Piece(boardState)
 
         if (relativePos == Position.S || relativePos == Position.NW || relativePos == Position.NE)
         {
-            yield return new MoveBlockable(BoardState, new(Position, p));
+            yield return new MoveBlockable
+            {
+                BoardState = BoardState,
+                MoveInfo = new(Position, p)
+            };
         }
 
         if (relativePos == Position.N)
         {
-            yield return new FirstMoveBlockable(BoardState, new(Position, p));
+            yield return new FirstMoveBlockable
+            {
+                BoardState = BoardState,
+                MoveInfo = new(Position, p)
+            };
         }
 
         if (SwappablePositions.Any(pos => pos == relativePos with { X = Math.Abs(relativePos.X) }))
         {
-
-            yield return new AlternateSwapUnblockable(BoardState, new(Position, p), (p-Position).ReflectAcross(Orientation * Position.N) + Position);
+            yield return new AlternateSwapUnblockable
+            {
+                BoardState = BoardState,
+                MoveInfo = new(Position, p),
+                AlternateOrigin = (p - Position).ReflectAcross(Orientation * Position.N) + Position
+            };
         }
     }
 }

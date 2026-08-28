@@ -1,4 +1,5 @@
-﻿using NinoChess.Mutations;
+﻿using NinoChess.Events;
+using NinoChess.Mutations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,10 +8,11 @@ using System.Runtime.CompilerServices;
 
 namespace NinoChess;
 
-public abstract class Piece(FullBoardState boardState) : IHasMoves, IHasPieceID
+public abstract class Piece : IHasMoves, IHasPieceID
 {
     public abstract RegistryID ID { get; }
-    public FullBoardState BoardState { get => boardState; set => boardState = value; }
+    public required BoardStateData BoardState { get; init; }
+    public required EventService EventService { get; init; }
 
     public required Position Position { get; set; }
     public required Transformation Orientation { get; set; }
@@ -35,21 +37,21 @@ public abstract class Piece(FullBoardState boardState) : IHasMoves, IHasPieceID
     public Position ToRelativePosition(Position p) => Orientation * (p - Position);
 
     public Position ToAbsolutePosition(Position p) => Orientation.Inverse * p + Position;
-    public bool CanPromote() => BoardState.Data.Board.IsPromotableTerritoryFor(Position, Allegience);
+    public bool CanPromote() => BoardState.Board.IsPromotableTerritoryFor(Position, Allegience);
 
-    public virtual void OnCreate(Mutation_Create eventInfo) { }
-    public virtual void OnDestroy(Mutation_Destroy eventInfo) { }
-    public virtual void OnSwap(Mutation_Swap eventInfo) { }
+    public virtual void OnCreate(object? sender, Event_Create eventInfo) { }
+    public virtual void OnDestroy(object? sender, Event_Destroy eventInfo) { }
+    public virtual void OnSwap(object? sender, Event_Swap eventInfo) { }
 }
 
-public abstract class Piece<TData>(FullBoardState boardState) : Piece(boardState)
+public abstract class Piece<TData> : Piece
     where TData : ICloneable
 {
     public TData? CustomData => (TData?) _customData;
 
-    public override void OnCreate(Mutation_Create eventInfo)
+    public override void OnCreate(object? sender, Event_Create eventInfo)
     {
-        base.OnCreate(eventInfo);
+        base.OnCreate(sender, eventInfo);
         _customData = GetDefaultData();
     }
 

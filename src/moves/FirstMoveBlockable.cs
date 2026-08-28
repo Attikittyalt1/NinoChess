@@ -1,6 +1,6 @@
 ﻿namespace NinoChess.Moves;
 
-record FirstMoveBlockable(FullBoardState BoardState, MoveInfo MoveInfo) : TypicalMove(BoardState, MoveInfo)
+class FirstMoveBlockable : TypicalMove
 {
     public override RegistryID ID => MoveID.FirstMoveBlockable;
     public override bool DisableAfterFirstMove => true;

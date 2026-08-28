@@ -2,29 +2,36 @@
 
 namespace NinoChess.Mutations;
 
-public class Mutation_Swap(FullBoardState currentBoardState, object? sender, (Position, Position) pos) : BoardStateEvent(currentBoardState, sender)
+public class Mutation_Swap : IBoardStateMutation
 {
-    public (Position, Position) Pos => pos;
-
+    public required IBoard Board { get; init; }
+    public required (Position, Position) Positions { get; init; }
     private (bool, bool) NewHasMoved { get; set; } = (true, true);
 
-    public override void Execute()
+    public void Execute()
     {
-        currentBoardState.Data.Board.TryGetPieceAt(pos.Item1)?.Position = pos.Item2;
-        currentBoardState.Data.Board.TryGetPieceAt(pos.Item2)?.Position = pos.Item1;
+        if (Board.TryGetPieceAt(Positions.Item1, out var piece1)) {
+            piece1.Position = Positions.Item2;
+            piece1.HasMoved = NewHasMoved.Item1;
+        }
 
-        currentBoardState.Data.Board.SwapPiecesAt(pos.Item1, pos.Item2);
+        if (Board.TryGetPieceAt(Positions.Item2, out var piece2))
+        {
+            piece2.Position = Positions.Item1;
+            piece2.HasMoved = NewHasMoved.Item2;
+        }
 
-        currentBoardState.Data.Board.TryGetPieceAt(pos.Item1)?.HasMoved = NewHasMoved.Item1;
-        currentBoardState.Data.Board.TryGetPieceAt(pos.Item2)?.HasMoved = NewHasMoved.Item2;
-
-        currentBoardState.Data.Board.TryGetPieceAt(pos.Item1)?.OnSwap(this);
-        currentBoardState.Data.Board.TryGetPieceAt(pos.Item2)?.OnSwap(this);
+        Board.SwapPiecesAt(Positions.Item1, Positions.Item2);
     }
 
 
-    public override IBoardStateMutation GetInverse() => new Mutation_Swap(currentBoardState, sender, pos) { NewHasMoved = (
-        currentBoardState.Data.Board.TryGetPieceAt(pos.Item1)?.HasMoved ?? false,
-        currentBoardState.Data.Board.TryGetPieceAt(pos.Item2)?.HasMoved ?? false
-        )};
+    public IBoardStateMutation GetInverse() => new Mutation_Swap 
+    { 
+        Board = Board,
+        Positions = Positions,
+        NewHasMoved = (
+            Board.TryGetPieceAt(Positions.Item1, out var piece1) && piece1.HasMoved,
+            Board.TryGetPieceAt(Positions.Item2, out var piece2) && piece2.HasMoved
+        )
+    };
 }

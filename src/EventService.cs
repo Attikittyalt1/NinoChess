@@ -7,28 +7,32 @@ namespace NinoChess;
 
 public class EventService
 {
-    private readonly Dictionary<Type, object> _eventHandlers = [];
+    private readonly Dictionary<Type, EventHandler> _events = [];
 
-    public EventHandler<T>? Get<T>() => (EventHandler<T>?) _eventHandlers.GetValueOrDefault(typeof(T));
+    public EventHandler? Get<T>() where T : EventArgs => Get(typeof(T));
 
-    public object? Get(Type t) => _eventHandlers.GetValueOrDefault(t);
+    public EventHandler? Get(Type t) => _events.GetValueOrDefault(t);
 
-    public void Add<T>(EventHandler<T> eventHandler)
+    public void Add<T>(EventHandler eventHandler) where T : EventArgs => Add(typeof(T), eventHandler);
+
+    public void Add(Type t, EventHandler eventHandler)
     {
-        _eventHandlers[typeof(T)] = Delegate.Combine(Get<T>(), eventHandler);
+        _events[t] = (EventHandler)Delegate.Combine(Get(t), eventHandler);
     }
 
-    public void Remove<T>(EventHandler<T> eventHandler)
+    public void Remove<T>(EventHandler eventHandler) where T : EventArgs => Remove(typeof(T), eventHandler);
+
+    public void Remove(Type t, EventHandler eventHandler)
     {
-        var value = Delegate.Remove(Get<T>(), eventHandler);
+        var value = (EventHandler?)Delegate.Remove(Get(t), eventHandler);
 
         if (value is not null)
         {
-            _eventHandlers[typeof(T)] = value;
+            _events[t] = value;
         }
         else
         {
-            _eventHandlers.Remove(typeof(T));
+            _events.Remove(t);
         }
     }
 }

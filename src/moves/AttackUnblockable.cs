@@ -1,6 +1,6 @@
 ﻿namespace NinoChess.Moves;
 
-record AttackUnblockable(FullBoardState BoardState, MoveInfo MoveInfo) : TypicalMove(BoardState, MoveInfo)
+class AttackUnblockable : TypicalMove
 {
     public override RegistryID ID => MoveID.AttackUnblockable;
     public override bool IsBlockable => false;
