@@ -53,6 +53,12 @@ abstract class TypicalMove : Move
                 Positions = (EffectiveOrigin, MoveInfo.Target)
             };
 
+            mutationService.Execute(new Mutation_Swap
+            {
+                Board = BoardState.Board,
+                Positions = args.Positions
+            });
+
             if (BoardState.Board.TryGetPieceAt(args.Positions.Item1, out var piece1))
             {
                 piece1.OnSwap(sender, args);
@@ -62,12 +68,6 @@ abstract class TypicalMove : Move
             {
                 piece2.OnSwap(sender, args);
             }
-
-            mutationService.Execute(new Mutation_Swap
-            {
-                Board = BoardState.Board,
-                Positions = args.Positions
-            });
 
             eventService.Get<Event_Swap>()?.Invoke(sender, args);
         }
