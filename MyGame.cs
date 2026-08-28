@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using NinoChess.Moves;
 using NinoChess.Pieces;
 using System;
 using System.Collections.Generic;
@@ -10,29 +11,20 @@ using System.Linq;
 namespace NinoChess;
 public class MyGame : Game
 {
-    private Vector2 MinScale => Vector2.One;
-    private Vector2 MaxScale => Vector2.One;
-    private Vector2 CurrentScale = Vector2.One;
-    private Position CurrentSize
-    {
-        get => ScalePosition(BaseSize);
-        set => CurrentScale = new Vector2((float)value.X / BaseSize.X, (float)value.Y / BaseSize.Y).Clamp(MinScale, MaxScale);
-    }
     private Position TrueWindowSize => new(Window.ClientBounds.Width, Window.ClientBounds.Height);
-    private Position MarginOffset => (TrueWindowSize - CurrentSize) / 2;
+    private Position MarginOffset => (TrueWindowSize - BaseSize) / 2;
     private Position BaseSize => Position.MultiplyComponentWise(_grid.Dimensions, _gridCellSize + _gridBorderSize) + _gridOffset + _gridBorderSize;
 
     private GraphicsDeviceManager _graphics;
     private SpriteBatch? _spriteBatch;
     private Texture2D? _atlas;
     private Dictionary<PieceID, DrawablePiece> _pieceTextures;
+    private Dictionary<MoveID, Color> _moveColors;
 
     private Grid? _grid;
     private BoardState? _board;
 
-    private Position _gridOffset => Position.Zero;
-    private Position _tokenOffset => new(_gridCellSize.X - _tokenSize.X * 5 / 4, _tokenSize.Y / 4);
-    private Position _tokenSize => Position.Unit * 16;
+    private Position _gridOffset => Position.Unit;
     private Position _gridCellSize => Position.Unit * 64;
     private Position _gridBorderSize => Position.Unit * 2;
     private Point _textureSize => _gridCellSize;
@@ -153,15 +145,11 @@ public class MyGame : Game
     private void InitializeWindow()
     {
         _graphics.IsFullScreen = false;
-        _graphics.PreferredBackBufferWidth = CurrentSize.X;
-        _graphics.PreferredBackBufferHeight = CurrentSize.Y;
+        _graphics.PreferredBackBufferWidth = BaseSize.X;
+        _graphics.PreferredBackBufferHeight = BaseSize.Y;
         _graphics.ApplyChanges();
 
         Window.AllowUserResizing = true;
-        Window.ClientSizeChanged += new EventHandler<EventArgs>((sender, e) =>
-        {
-            CurrentSize = TrueWindowSize;
-        });
     }
 
     protected override void LoadContent()
@@ -295,7 +283,7 @@ public class MyGame : Game
 
         if (_pieceTextures.TryGetValue(id, out var value))
         {
-            value.Draw(pixelPos, new(_spriteBatch, _atlas, CurrentScale), (piece.Allegience, piece.CurrentTokenIndex));
+            value.Draw(pixelPos, new(_spriteBatch, _atlas), (piece.Allegience, piece.CurrentTokenIndex));
         } else
         {
             DrawFromAtlas(pixelPos, new(1,0), Color.White);
@@ -311,20 +299,19 @@ public class MyGame : Game
             color,
             0f,
             Vector2.Zero,
-            CurrentScale,
+            Vector2.One,
             SpriteEffects.None,
             0f
         );
     }
 
-    private Position ScalePosition(Position pos) => (Position) MyExtensions.MultiplyComponentWise(pos, CurrentScale);
-    private Position ConvertGridPositionToPixelPosition(Position pos) => ScalePosition(_gridOffset + _gridBorderSize + Position.MultiplyComponentWise(FlipYRegardingBoardSize(pos), _gridCellSize + _gridBorderSize)) + MarginOffset;
-    private Position ConvertPixelPositionToGridPosition(Position pos) => FlipYRegardingBoardSize((Position) MyExtensions.DivideComponentWise(MyExtensions.DivideComponentWise(pos - MarginOffset, CurrentScale) - (_gridOffset + _gridBorderSize), _gridCellSize + _gridBorderSize));
+    private Position ConvertGridPositionToPixelPosition(Position pos) => MarginOffset + _gridOffset + _gridBorderSize + Position.MultiplyComponentWise(FlipYRegardingBoardSize(pos), _gridCellSize + _gridBorderSize);
+    private Position ConvertPixelPositionToGridPosition(Position pos) => FlipYRegardingBoardSize((Position) MyExtensions.DivideComponentWise(pos - MarginOffset - _gridOffset - _gridBorderSize, _gridCellSize + _gridBorderSize));
     private bool IsPixelPositionOnCell(Position pos)
     {
-        var boardPos = MyExtensions.DivideComponentWise(pos - MarginOffset, CurrentScale) - (_gridOffset + _gridBorderSize);
+        var boardPos = pos - MarginOffset - _gridOffset - _gridBorderSize;
 
-        if (!boardPos.IsBetween(Vector2.Zero, Position.MultiplyComponentWise(_grid.Dimensions, _gridCellSize + _gridBorderSize), true, false))
+        if (!boardPos.IsBetween(Position.Zero, Position.MultiplyComponentWise(_grid.Dimensions, _gridCellSize + _gridBorderSize), true, false))
         {
             return false;
         }
@@ -393,7 +380,7 @@ public class DraggingHandler<TData>
 
 public class DrawableSprite(params Rectangle[] components)
 {
-    public record DrawInfo(SpriteBatch SpriteBatch, Texture2D Atlas, Vector2 Scale);
+    public record DrawInfo(SpriteBatch SpriteBatch, Texture2D Atlas);
 
     public void Draw(Position pos, DrawInfo info, List<(int componentIndex, Color color)> drawnComponents)
     {
@@ -406,7 +393,7 @@ public class DrawableSprite(params Rectangle[] components)
                 color,
                 0f,
                 Vector2.Zero,
-                info.Scale,
+                Vector2.One,
                 SpriteEffects.None,
                 0f
             );
