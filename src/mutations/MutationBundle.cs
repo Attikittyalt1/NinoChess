@@ -13,6 +13,5 @@ public class MutationBundle(FullBoardState currentBoardState, object? sender, IE
         }
     }
 
-
     public override IBoardStateMutation GetInverse() => new MutationBundle(currentBoardState, sender, Enumerable.Reverse(mutations.Select(mutation => mutation.GetInverse())));
 }

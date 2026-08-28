@@ -12,7 +12,7 @@ public abstract class BoardStateEvent(FullBoardState currentBoardState, object? 
 
     public void InvokeOnto(object? handler)
     {
-        handler?.GetType().GetMethod("Invoke").Invoke(this, [sender, GetEventArgs()]);
+        handler?.GetType().GetMethod("Invoke").Invoke(handler, [sender, GetEventArgs()]);
     }
 
     public abstract void Execute();
