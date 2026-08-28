@@ -58,10 +58,7 @@ public class BoardStateMutationHandler(BoardStateData boardState)
             return;
         }
 
-        var operations = _undoStack.Pop();
-        operations.Reverse();
-
-        foreach (var mutation in operations)
+        foreach (var mutation in Enumerable.Reverse(_undoStack.Pop()))
         {
             Execute((BoardStateEvent)mutation);
         }
@@ -76,10 +73,7 @@ public class BoardStateMutationHandler(BoardStateData boardState)
             return;
         }
 
-        var operations = _redoStack.Pop();
-        operations.Reverse();
-
-        foreach (var mutation in operations)
+        foreach (var mutation in Enumerable.Reverse(_redoStack.Pop()))
         {
             Execute((BoardStateEvent)mutation);
         }
