@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 
 namespace NinoChess;
 
@@ -54,6 +55,48 @@ public static class MyExtensions
                 _defaultValuesCache.Add(type, value);
                 return value;
             }
+        }
+    }
+
+    extension(ServiceContainer container)
+    {
+        public void AddService<T>(object serviceInstance) => container.AddService(typeof(T), serviceInstance);
+        public void AddService<T>(object serviceInstance, bool promote) => container.AddService(typeof(T), serviceInstance, promote);
+        public void AddService<T>(ServiceCreatorCallback callback) => container.AddService(typeof(T), callback);
+        public void AddService<T>(ServiceCreatorCallback callback, bool promote) => container.AddService(typeof(T), callback, promote);
+
+        public void RemoveService<T>() => container.RemoveService(typeof(T));
+        public void RemoveService<T>(bool promote) => container.RemoveService(typeof(T), promote);
+
+        public T? GetService<T>(EventHandler eventHandler) => (T?)container.GetService(typeof(T));
+        public T GetService<T>(object defaultServiceInstance) => (T)container.GetService(typeof(T), defaultServiceInstance);
+        public T GetService<T>(object defaultServiceInstance, bool promote) => (T)container.GetService(typeof(T), defaultServiceInstance, promote);
+
+
+        public object GetService(Type serviceType, object defaultServiceInstance)
+        {
+            var service = container.GetService(serviceType);
+
+            if (service == null)
+            {
+                container.AddService(serviceType, defaultServiceInstance);
+                return defaultServiceInstance;
+            }
+
+            return service;
+        }
+
+        public object GetService(Type serviceType, object defaultServiceInstance, bool promote)
+        {
+            var service = container.GetService(serviceType);
+
+            if (service == null)
+            {
+                container.AddService(serviceType, defaultServiceInstance, promote);
+                return defaultServiceInstance;
+            }
+
+            return service;
         }
     }
 

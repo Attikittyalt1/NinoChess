@@ -3,77 +3,15 @@ using System.Collections.Generic;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.ComponentModel.Design;
 
 namespace NinoChess;
 
-public class BoardState(IBoard board)
+public class BoardStateData(IBoard board)
 {
-    public bool ContainsPosition(Position p) => board.ContainsPosition(p);
-    public bool HasPieceAt(Position p) => board.HasPieceAt(p);
-    public Piece GetPieceAt(Position p) => board.GetPieceAt(p);
-    public Piece? TryGetPieceAt(Position p) => board.HasPieceAt(p) ? board.GetPieceAt(p) : null;
+    public IBoard Board => board;
 
-    private List<EventArgs> _recentBoardMutations = [];
-    private List<EventArgs> _newBoardMutations = [];
-
-    public EventHandler? OnDestroy;
-    public class PieceDestructionInfo(Piece piece) : EventArgs
-    {
-        public Piece Piece => piece;
-    }
-    public void DestroyPieceAt(Position p, PieceDestructionInfo info)
-    {
-        board.RemovePieceAt(p);
-
-        _newBoardMutations.Add(info);
-
-        OnDestroy?.Invoke(this, info);
-        info.Piece.OnDestroy(info);
-    }
-
-    public EventHandler? OnCreate;
-    public class PieceCreationInfo(Piece piece) : EventArgs
-    {
-        public Piece Piece => piece;
-    }
-    public void CreatePieceAt(Position p, PieceCreationInfo info)
-    {
-        board.AddPieceAt(p, info.Piece);
-
-        _newBoardMutations.Add(info);
-
-        OnCreate?.Invoke(this, info);
-        info.Piece.OnCreate(info);
-    }
-
-    public EventHandler? OnSwap;
-    public class PieceSwapInfo(Position p1, Position p2) : EventArgs
-    {
-        public Position P1 => p1;
-        public Position P2 => p2;
-    }
-    public void SwapPieceLocations(Position p1, Position p2, PieceSwapInfo info)
-    {
-        TryGetPieceAt(p1)?.Position = p2;
-        TryGetPieceAt(p2)?.Position = p1;
-        board.SwapPiecesAt(p1, p2);
-
-        _newBoardMutations.Add(info);
-
-        OnSwap?.Invoke(this, info);
-        TryGetPieceAt(p1)?.OnSwap(info);
-        TryGetPieceAt(p2)?.OnSwap(info);
-    }
-
-    public ReadOnlyCollection<EventArgs> RecentBoardMutations => _recentBoardMutations.AsReadOnly();
-
-    public void ExecuteMove(Position p1, Position p2)
-    {
-        board.GetPieceAt(p1).GetBestValidMoveAt(p2).Execute();
-
-        _recentBoardMutations = _newBoardMutations;
-        _newBoardMutations = [];
-    }
+    public EventService MutationEvents = new();
 
     public bool IsValidMove(MoveInfo info)
     {

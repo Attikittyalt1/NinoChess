@@ -21,7 +21,8 @@ public class Grid(Position Dimensions) : IBoard
 
     public bool ContainsPosition(Position p) => p.IsBetween(Position.Zero, Dimensions, true, false);
     public bool HasPieceAt(Position p) => _pieces[p.X, p.Y] is not null;
-    public Piece GetPieceAt(Position p) => _pieces[p.X, p.Y] ?? throw new NullReferenceException();
+    public Piece? TryGetPieceAt(Position p) => _pieces[p.X, p.Y];
+    public Piece GetPieceAt(Position p) => TryGetPieceAt(p) ?? throw new NullReferenceException();
 
     public void RemovePieceAt(Position p)
     {

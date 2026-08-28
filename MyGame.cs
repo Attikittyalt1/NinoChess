@@ -86,7 +86,7 @@ public class MyGame : Game
             {
                 var pos = ConvertPixelPositionToGridPosition(handler.CurrentPosition);
 
-                if (_board.ContainsPosition(pos) && _board.IsValidMove(data.InitialPiecePosition, pos))
+                if (_board.ContainsPosition(pos) && _board.IsValidMove(new(data.InitialPiecePosition, pos)))
                 {
                     _board.ExecuteMove(data.InitialPiecePosition, pos);
                     return;
