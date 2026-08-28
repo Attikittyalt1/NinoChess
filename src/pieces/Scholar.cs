@@ -49,6 +49,7 @@ class Scholar : Piece
         }
 
         if (
+            relativePos.IsInDirection(Position.N, 3, 3, true, true) ||
             relativePos.IsInDirection(Position.NE, 2, 2, true, true)
             )
         {

@@ -106,10 +106,10 @@ public class MyGame : Game
     {
         Create(new Pawn(_board, new(0, 1), Transformation.Identity, Allegience.White));
         Create(new Pawn(_board, new(1, 1), Transformation.Identity, Allegience.White));
-        Create(new Nuldar(_board, new(2, 1), Transformation.Identity, Allegience.White));
-        Create(new Dannel(_board, new(3, 1), Transformation.Identity, Allegience.White));
-        Create(new Dannel(_board, new(4, 1), Transformation.Identity, Allegience.White));
-        Create(new Nuldar(_board, new(5, 1), Transformation.Identity, Allegience.White));
+        Create(new Pawn(_board, new(2, 1), Transformation.Identity, Allegience.White));
+        Create(new Pawn(_board, new(3, 1), Transformation.Identity, Allegience.White));
+        Create(new Pawn(_board, new(4, 1), Transformation.Identity, Allegience.White));
+        Create(new Pawn(_board, new(5, 1), Transformation.Identity, Allegience.White));
         Create(new Pawn(_board, new(6, 1), Transformation.Identity, Allegience.White));
         Create(new Pawn(_board, new(7, 1), Transformation.Identity, Allegience.White));
         Create(new Rook(_board, new(0, 0), Transformation.Identity, Allegience.White));
@@ -123,10 +123,10 @@ public class MyGame : Game
 
         Create(new Pawn(_board, new(0, 6), Transformation.Flip, Allegience.Black));
         Create(new Pawn(_board, new(1, 6), Transformation.Flip, Allegience.Black));
-        Create(new Nuldar(_board, new(2, 6), Transformation.Flip, Allegience.Black));
+        Create(new Pawn(_board, new(2, 6), Transformation.Flip, Allegience.Black));
         Create(new Dannel(_board, new(3, 6), Transformation.Flip, Allegience.Black));
         Create(new Dannel(_board, new(4, 6), Transformation.Flip, Allegience.Black));
-        Create(new Nuldar(_board, new(5, 6), Transformation.Flip, Allegience.Black));
+        Create(new Pawn(_board, new(5, 6), Transformation.Flip, Allegience.Black));
         Create(new Pawn(_board, new(6, 6), Transformation.Flip, Allegience.Black));
         Create(new Pawn(_board, new(7, 6), Transformation.Flip, Allegience.Black));
         Create(new Rook(_board, new(0, 7), Transformation.Flip, Allegience.Black));
@@ -182,7 +182,7 @@ public class MyGame : Game
             _pieceTextures.Add(id, new DrawablePiece(
                 ConvertAtlasPointToRectangle(primary),
                 ConvertAtlasPointToRectangle(secondary),
-                tokens.Select(pos => new Rectangle(_textureSize, pos)).ToArray(), new()
+                tokens.Select(ConvertAtlasPointToRectangle).ToArray(), new()
                 {
                     [Allegience.White] = (Color.White, Color.Black),
                     [Allegience.Black] = (Color.Black, Color.White),
@@ -302,7 +302,6 @@ public class MyGame : Game
         {
             if (_moveColors.TryGetValue((MoveID)(Enum)move.ID, out var color))
             {
-                Debug.WriteLine("test");
                 DrawBorder(move.Target, color);
             }
         }
@@ -451,7 +450,7 @@ public class DrawablePiece(Rectangle primary, Rectangle secondary, Rectangle[] t
 
         if (data.tokenIndex >= 0)
         {
-            return [(0, colors.primary), (1, colors.secondary), (data.tokenIndex + 2, Color.White)];
+            return [(0, colors.primary), (1, colors.secondary), (data.tokenIndex + 2, new Color(255, 255, 255, 63))];
         }
         else
         {
