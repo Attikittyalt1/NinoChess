@@ -57,11 +57,6 @@ public class MyGame : Game
 
         SetupBoard();
 
-        _boardState.MutationHandler.MutationEvents.Add<Mutation_Swap>((o, e) =>
-        {
-            Debug.WriteLine("swapped: {0} and {1}", e.Pos.Item1, e.Pos.Item2);
-        });
-
         draggingHandler = new();
         draggingHandler.OnDragBegin += (o, e) =>
         {
