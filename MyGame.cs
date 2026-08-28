@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Input;
 using NinoChess.Pieces;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace NinoChess;
 public class MyGame : Game
@@ -23,8 +24,8 @@ public class MyGame : Game
 
     private GraphicsDeviceManager _graphics;
     private SpriteBatch? _spriteBatch;
-    private Texture2D? _squareTexture;
-    private Dictionary<PieceID, IDrawableTextureWithTokens> _pieceTextures;
+    private Texture2D? _atlas;
+    private Dictionary<PieceID, DrawablePiece> _pieceTextures;
 
     private Grid? _grid;
     private BoardState? _board;
@@ -34,6 +35,7 @@ public class MyGame : Game
     private Position _tokenSize => Position.Unit * 16;
     private Position _gridCellSize => Position.Unit * 64;
     private Position _gridBorderSize => Position.Unit * 2;
+    private Point _textureSize => _gridCellSize;
 
     record PieceDraggingData(bool IsDraggingPiece, Position InitialPiecePosition) : IDisposable
     {
@@ -101,6 +103,8 @@ public class MyGame : Game
 
         InitializeWindow();
 
+        AddPieces();
+
         base.Initialize();
     }
 
@@ -163,43 +167,38 @@ public class MyGame : Game
     protected override void LoadContent()
     {
         _spriteBatch = new SpriteBatch(GraphicsDevice);
+        _atlas = Content.Load<Texture2D>("Assets/_spritesheet");
+    }
 
-        _squareTexture = new Texture2D(GraphicsDevice, 1, 1);
-        _squareTexture.SetData([Color.White]);
-
+    private void AddPieces()
+    {
         _pieceTextures = [];
-        _pieceTextures.Add(PieceID.Pawn, new DrawableSprite(
-            Content.Load<Texture2D>("Assets/Pieces/Pawn_Color"),
-            Content.Load<Texture2D>("Assets/Pieces/Pawn_Shading")
-            ));
-        Add(PieceID.Knight, Color.SaddleBrown);
-        Add(PieceID.Bishop, Color.CornflowerBlue);
-        Add(PieceID.Dannel, Color.IndianRed);
-        AddWithTokens(PieceID.Scholar, Color.DarkBlue, [Color.DarkBlue, Color.DarkRed]);
-        Add(PieceID.King, Color.YellowGreen);
-        Add(PieceID.Moog, Color.DeepPink);
-        Add(PieceID.Rook, Color.DarkGreen);
-        Add(PieceID.Nuldar, Color.DarkTurquoise);
+        Add(PieceID.Pawn, new(0, 1), new(1, 1));
+        Add(PieceID.King, new(2, 1), new(3, 1));
+        Add(PieceID.Bishop, new(4, 1), new(5, 1));
+        Add(PieceID.Knight, new(6, 1), new(7, 1));
+        Add(PieceID.Rook, new(0, 2), new(1, 2));
+        Add(PieceID.Moog, new(2, 2), new(3, 2));
+        Add(PieceID.Dannel, new(4, 2), new(5, 2));
+        Add(PieceID.Nuldar, new(6, 2), new(7, 2));
+        AddWithTokens(PieceID.Scholar, new(0, 3), new(1, 3), [new(6, 0), new(7, 0)]);
 
-        void Add(PieceID id, Color color)
+        void Add(PieceID id, Point primary, Point secondary)
         {
-            _pieceTextures.Add(id, new DrawableSimpleSprite(
-                _squareTexture,
-                color,
-                _gridCellSize
-            ));
+            AddWithTokens(id, primary, secondary, []);
         }
-
-        void AddWithTokens(PieceID id, Color color, Color[] tokens)
+        void AddWithTokens(PieceID id, Point primary, Point secondary, Point[] tokens)
         {
-            _pieceTextures.Add(id, new DrawableSimpleSprite(
-                _squareTexture,
-                color,
-                _gridCellSize,
-                _tokenOffset,
-                _tokenSize,
-                tokens
-            ));
+            _pieceTextures.Add(id, new DrawablePiece(
+                ConvertAtlasPointToRectangle(primary),
+                ConvertAtlasPointToRectangle(secondary),
+                tokens.Select(pos => new Rectangle(_textureSize, pos)).ToArray(), new()
+                {
+                    [Allegience.White] = (Color.White, Color.Black),
+                    [Allegience.Black] = (Color.Black, Color.White),
+                }
+                ));
+
         }
     }
 
@@ -233,11 +232,11 @@ public class MyGame : Game
 
         if (draggingHandler.IsDragging && (draggingHandler.DraggingData?.IsDraggingPiece ?? false))
         {
-            var pixelPosition = draggingHandler.CurrentPosition + ConvertGridPositionToPixelPosition(draggingHandler.DraggingData.InitialPiecePosition) - draggingHandler.InitialPosition;
-
             var piecePosition = draggingHandler.DraggingData.InitialPiecePosition;
 
-            DrawCellForeground(pixelPosition, _board.GetPieceAt(piecePosition));
+            var pixelPosition = draggingHandler.CurrentPosition + ConvertGridPositionToPixelPosition(piecePosition) - draggingHandler.InitialPosition;
+
+            DrawPiece(pixelPosition, _board.GetPieceAt(piecePosition));
             
         }
 
@@ -255,59 +254,64 @@ public class MyGame : Game
     {
         foreach (var position in _grid.GetValidPositions())
         {
+            DrawTile(position);
+
             bool isEmpty = _board.IsEmpty(position) || (draggingHandler.IsDragging && (draggingHandler.DraggingData?.IsDraggingPiece ?? false) && draggingHandler.DraggingData.InitialPiecePosition == position);
-            
-            DrawCell(ConvertGridPositionToPixelPosition(position), position, isEmpty);
+
+            if (!isEmpty)
+            {
+                DrawPiece(position);
+            }
         }
     }
 
-    private void DrawCell(Position pixelPos, Position gridPos, bool isEmpty)
-    {
-        DrawCellBackground(pixelPos, gridPos);
-
-        if (!isEmpty)
-        {
-            DrawCellForeground(pixelPos, _board.GetPieceAt(gridPos));
-        }
-    }
-
-    private void DrawCellBackground(Position pixelPos, Position gridPos)
+    private void DrawTile(Position gridPos)
     {
         var boardColor = (gridPos.X + gridPos.Y).IsEven() ? Color.Tan : Color.Beige;
+        var pixelPos = ConvertGridPositionToPixelPosition(gridPos);
 
-        DrawCell(pixelPos - _gridBorderSize / 2, boardColor, _gridCellSize + _gridBorderSize);
+        DrawFromAtlas(pixelPos, new(0,0), boardColor);
+        DrawBorder(gridPos, boardColor);
     }
 
-    private void DrawCellForeground(Position pixelPos, Piece piece)
+    private void DrawBorder(Position gridPos, Color color)
     {
-        var (id, allegience) = ((PieceID)(Enum)piece.ID, piece.Allegience);
+        var pixelPos = ConvertGridPositionToPixelPosition(gridPos);
 
-        var alignmentColor = allegience switch
-        {
-            Allegience.White => Color.White,
-            Allegience.Black => Color.DarkGray,
-            _ => Color.Black
-        };
+        DrawFromAtlas(pixelPos + new Position(0, -_gridBorderSize.Y / 2), new(4, 0), color);
+        DrawFromAtlas(pixelPos + new Position(-_gridBorderSize.X / 2, 0), new(5, 0), color);
+        DrawFromAtlas(pixelPos + new Position(0, _gridCellSize.Y - _gridBorderSize.Y / 2), new(4, 0), color);
+        DrawFromAtlas(pixelPos + new Position(_gridCellSize.X - _gridBorderSize.X / 2, 0), new(5, 0), color);
+    }
+
+    private void DrawPiece(Position gridPos)
+    {
+        DrawPiece(ConvertGridPositionToPixelPosition(gridPos), _board.GetPieceAt(gridPos));
+    }
+
+    private void DrawPiece(Position pixelPos, Piece piece)
+    {
+        var id = (PieceID)(Enum)piece.ID;
 
         if (_pieceTextures.TryGetValue(id, out var value))
         {
-            value.Draw(new(_spriteBatch, CurrentScale, alignmentColor, pixelPos), piece.CurrentTokenIndex);
+            value.Draw(pixelPos, new(_spriteBatch, _atlas, CurrentScale), (piece.Allegience, piece.CurrentTokenIndex));
         } else
         {
-            DrawCell(pixelPos, Color.Black, _gridCellSize);
+            DrawFromAtlas(pixelPos, new(1,0), Color.White);
         }
     }
 
-    private void DrawCell(Position pos, Color color, Position size)
+    private void DrawFromAtlas(Position pixelPos, Point atlasPos, Color color)
     {
         _spriteBatch.Draw(
-            _squareTexture,
-            pos,
-            null,
+            _atlas,
+            pixelPos,
+            ConvertAtlasPointToRectangle(atlasPos),
             color,
             0f,
             Vector2.Zero,
-            ScalePosition(size),
+            CurrentScale,
             SpriteEffects.None,
             0f
         );
@@ -329,6 +333,8 @@ public class MyGame : Game
     }
 
     private Position FlipYRegardingBoardSize(Position pos) => new Position(pos.X, _grid.Dimensions.Y - 1 - pos.Y);
+
+    private Rectangle ConvertAtlasPointToRectangle(Point p) => new Rectangle(new(_textureSize.X * p.X, _textureSize.Y * p.Y), _textureSize);
 }
 
 public class DraggingHandler<TData>
@@ -385,151 +391,53 @@ public class DraggingHandler<TData>
     }
 }
 
-public interface IDrawableTexture
+public class DrawableSprite(params Rectangle[] components)
 {
-    public record DrawInfo(SpriteBatch spriteBatch, Vector2 scale, Color color, Position pos);
-    public void Draw(DrawInfo info);
-}
+    public record DrawInfo(SpriteBatch SpriteBatch, Texture2D Atlas, Vector2 Scale);
 
-public interface IDrawableTextureWithTokens : IDrawableTexture
-{
-    void IDrawableTexture.Draw(DrawInfo info) => Draw(info, -1);
-    public void Draw(DrawInfo info, int TokenIndex);
-}
-
-public class DrawableSprite : IDrawableTextureWithTokens
-{
-    private readonly Texture2D _colorTexture;
-    private readonly Texture2D _shadingTexture;
-    private readonly Texture2D[] _tokens;
-
-
-    public DrawableSprite(Texture2D color, Texture2D shading)
+    public void Draw(Position pos, DrawInfo info, List<(int componentIndex, Color color)> drawnComponents)
     {
-        _colorTexture = color;
-        _shadingTexture = shading;
-        _tokens = [];
-    }
-
-    public DrawableSprite(Texture2D color, Texture2D shading, Texture2D[] tokens)
-    {
-        _colorTexture = color;
-        _shadingTexture = shading;
-        _tokens = tokens;
-    }
-
-    public void Draw(IDrawableTexture.DrawInfo info, int TokenIndex)
-    {
-        info.spriteBatch.Draw(
-            _colorTexture,
-            info.pos,
-            null,
-            info.color,
-            0f,
-            Vector2.Zero,
-            info.scale,
-            SpriteEffects.None,
-            0f
-        );
-
-        info.spriteBatch.Draw(
-            _shadingTexture,
-            info.pos,
-            null,
-            Color.White,
-            0f,
-            Vector2.Zero,
-            info.scale,
-            SpriteEffects.None,
-            0f
-        );
-
-        if (TokenIndex >= 0)
+        foreach (var (componentIndex, color) in drawnComponents)
         {
-            info.spriteBatch.Draw(
-            _tokens[TokenIndex],
-            info.pos,
-            null,
-            Color.White,
-            0f,
-            Vector2.Zero,
-            info.scale,
-            SpriteEffects.None,
-            0f
-        );
+            info.SpriteBatch.Draw(
+                info.Atlas,
+                pos,
+                components[componentIndex],
+                color,
+                0f,
+                Vector2.Zero,
+                info.Scale,
+                SpriteEffects.None,
+                0f
+            );
         }
     }
 }
 
-public class DrawableSimpleSprite : IDrawableTextureWithTokens
+public abstract class DrawableSprite<TData>(params Rectangle[] components) : DrawableSprite(components)
 {
-    private readonly Texture2D _texture;
-    private readonly Color _color;
-    private readonly Vector2 _size;
-    private readonly Vector2 _tokenOffset;
-    private readonly Vector2 _tokenSize;
-    private readonly Color[] _tokens;
-
-
-    public DrawableSimpleSprite(Texture2D texture, Color color, Vector2 size)
+    public void Draw(Position pos, DrawInfo info, TData data)
     {
-        _texture = texture;
-        _color = color;
-        _size = size;
-        _tokenOffset = default;
-        _tokenSize = default;
-        _tokens = [];
+        Draw(pos, info, GetColorData(data));
     }
 
-    public DrawableSimpleSprite(Texture2D texture, Color color, Vector2 size, Vector2 tokenOffset, Vector2 tokenSize, Color[] tokens)
+    public abstract List<(int componentIndex, Color color)> GetColorData(TData data);
+}
+
+public class DrawablePiece(Rectangle primary, Rectangle secondary, Rectangle[] tokens, Dictionary<Allegience, (Color primary, Color secondary)> colorMap) : DrawableSprite<(Allegience allegience, int tokenIndex)>([..Enumerable.Concat([primary, secondary], tokens)])
+{
+
+    public override List<(int componentIndex, Color color)> GetColorData((Allegience allegience, int tokenIndex) data)
     {
-        _texture = texture;
-        _color = color;
-        _size = size;
-        _tokenOffset = tokenOffset;
-        _tokenSize = tokenSize;
-        _tokens = tokens;
-    }
+        var colors = colorMap[data.allegience];
 
-    public void Draw(IDrawableTexture.DrawInfo info, int tokenIndex)
-    {
-        info.spriteBatch.Draw(
-            _texture,
-            info.pos,
-            null,
-            info.color,
-            0f,
-            Vector2.Zero,
-            MyExtensions.MultiplyComponentWise(info.scale, _size),
-            SpriteEffects.None,
-            0f
-        );
-
-        info.spriteBatch.Draw(
-            _texture,
-            info.pos,
-            null,
-            _color with { A = 127},
-            0f,
-            Vector2.Zero,
-            MyExtensions.MultiplyComponentWise(info.scale, _size),
-            SpriteEffects.None,
-            0f
-        );
-
-        if (tokenIndex >= 0)
+        if (data.tokenIndex >= 0)
         {
-            info.spriteBatch.Draw(
-                _texture,
-                info.pos + _tokenOffset,
-                null,
-                _tokens[tokenIndex],
-                0f,
-                Vector2.Zero,
-                MyExtensions.MultiplyComponentWise(info.scale, _tokenSize),
-                SpriteEffects.None,
-                0f
-            );
+            return [(0, colors.primary), (1, colors.secondary), (data.tokenIndex + 2, Color.White)];
+        }
+        else
+        {
+            return [(0, colors.primary), (1, colors.secondary)];
         }
     }
 }
