@@ -1,6 +1,6 @@
 ﻿namespace NinoChess;
 
-class Match(BoardState boardState)
+public class Match(BoardState boardState)
 {
     
 }

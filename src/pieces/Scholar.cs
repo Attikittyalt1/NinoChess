@@ -40,7 +40,7 @@ class Scholar(BoardState board, Position position, Transformation orientation, A
             relativePos.IsInDirection(Position.N, 1, 1, true, true)
             )
         {
-            yield return new MoveOrSwapBlockable(Board, Position, p);
+            yield return new MoveOrSwapBlockable(Board, new(Position, p));
         }
 
         if (
@@ -50,12 +50,12 @@ class Scholar(BoardState board, Position position, Transformation orientation, A
         {
             if (CurrentMode == Mode.Agile)
             {
-                yield return new MoveUnblockable(Board, Position, p);
+                yield return new MoveUnblockable(Board, new(Position, p));
             }
 
             if (CurrentMode == Mode.Aggressive)
             {
-                yield return new AttackUnblockable(Board, Position, p);
+                yield return new AttackUnblockable(Board, new(Position, p));
             }
         }
     }

@@ -1,6 +1,6 @@
 ﻿namespace NinoChess.Moves;
 
-record RangedAttackBlockable(BoardState Board, Position Origin, Position Target) : TypicalMove(Board, Origin, Target)
+record RangedAttackBlockable(BoardState Board, MoveInfo MoveInfo) : TypicalMove(Board, MoveInfo)
 {
     public override RegistryID ID => MoveID.RangedAttackUnblockable;
     public override bool CanTargetEmpty => false;

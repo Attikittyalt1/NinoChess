@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace NinoChess;
 
-class Grid(Position Dimensions) : IBoard
+public class Grid(Position Dimensions) : IBoard
 {
     public readonly Position Dimensions = Dimensions;
 

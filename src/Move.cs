@@ -1,21 +1,21 @@
 ﻿namespace NinoChess;
 
-
-abstract record Move(BoardState Board, Position Origin, Position Target) : ICanMove, IHasMoveID
+public abstract record Move(BoardState Board, MoveInfo MoveInfo) : ICanMove, IHasMoveID
 {
     public abstract void Execute();
     public abstract bool IsValid();
     public abstract RegistryID ID { get; }
 }
 
+public readonly record struct MoveInfo(Position Origin, Position Target);
 
-interface ICanMove
+public interface ICanMove
 {
     public void Execute();
     public bool IsValid();
 }
 
-interface IHasMoveID
+public interface IHasMoveID
 {
     public RegistryID ID { get; }
 }

@@ -2,7 +2,7 @@
 
 namespace NinoChess;
 
-interface IBoard
+public interface IBoard
 {
     public int Size { get; }
     public IEnumerable<Position> GetValidPositions();

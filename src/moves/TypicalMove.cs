@@ -1,6 +1,6 @@
 ﻿namespace NinoChess.Moves;
 
-abstract record TypicalMove(BoardState Board, Position Origin, Position Target) : Move(Board, Origin, Target)
+abstract record TypicalMove(BoardState Board, MoveInfo MoveInfo) : Move(Board, MoveInfo)
 {
     public virtual bool CanTargetEnemy => false;
     public virtual bool CanTargetAlly => false;
@@ -10,7 +10,7 @@ abstract record TypicalMove(BoardState Board, Position Origin, Position Target) 
     public virtual bool MovePieces => true;
     public virtual bool DestroyTarget => true;
     public virtual bool DisableAfterFirstMove => false;
-    public virtual Position EffectiveOrigin => Origin;
+    public virtual Position EffectiveOrigin => MoveInfo.Origin;
     public virtual bool EffectiveOriginCanTargetEnemy => true;
     public virtual bool EffectiveOriginCanTargetAlly => true;
     public virtual bool EffectiveOriginCanTargetNeutral => true;
@@ -18,28 +18,28 @@ abstract record TypicalMove(BoardState Board, Position Origin, Position Target) 
 
     public override void Execute()
     {
-        if (DestroyTarget && Board.HasPieceAt(Target))
+        if (DestroyTarget && Board.HasPieceAt(MoveInfo.Target))
         {
-            Board.DestroyPieceAt(Target, new(Board.GetPieceAt(Target)));
+            Board.DestroyPieceAt(MoveInfo.Target, new(Board.GetPieceAt(MoveInfo.Target)));
         }
 
         if (MovePieces)
         {
-            Board.SwapPieceLocations(EffectiveOrigin, Target, new(Origin, Target));
+            Board.SwapPieceLocations(EffectiveOrigin, MoveInfo.Target, new(MoveInfo.Origin, MoveInfo.Target));
         }
     }
 
     public override bool IsValid() => (
-           (CanTargetEmpty && Board.IsEmpty(Target))
-        || (CanTargetEnemy && Board.HasEnemy(Target, Origin))
-        || (CanTargetAlly && Board.HasAlly(Target, Origin))
-        || (CanTargetNeutral && Board.HasNeutral(Target, Origin)))
+           (CanTargetEmpty && Board.IsEmpty(MoveInfo.Target))
+        || (CanTargetEnemy && Board.HasEnemy(MoveInfo.Target, MoveInfo.Origin))
+        || (CanTargetAlly && Board.HasAlly(MoveInfo.Target, MoveInfo.Origin))
+        || (CanTargetNeutral && Board.HasNeutral(MoveInfo.Target, MoveInfo.Origin)))
         && Board.ContainsPosition(EffectiveOrigin)
-        && (EffectiveOrigin == Origin
+        && (EffectiveOrigin == MoveInfo.Origin
         || (EffectiveOriginCanTargetEmpty && Board.IsEmpty(EffectiveOrigin))
-        || (EffectiveOriginCanTargetEnemy && Board.HasEnemy(EffectiveOrigin, Origin))
-        || (EffectiveOriginCanTargetAlly && Board.HasAlly(EffectiveOrigin, Origin))
-        || (EffectiveOriginCanTargetNeutral && Board.HasNeutral(EffectiveOrigin, Origin)))
-        && !(DisableAfterFirstMove && Board.GetPieceAt(Origin).HasMoved)
-        && !(IsBlockable && Board.HasPiecesBetween(EffectiveOrigin, Target));
+        || (EffectiveOriginCanTargetEnemy && Board.HasEnemy(EffectiveOrigin, MoveInfo.Origin))
+        || (EffectiveOriginCanTargetAlly && Board.HasAlly(EffectiveOrigin, MoveInfo.Origin))
+        || (EffectiveOriginCanTargetNeutral && Board.HasNeutral(EffectiveOrigin, MoveInfo.Origin)))
+        && !(DisableAfterFirstMove && Board.GetPieceAt(MoveInfo.Origin).HasMoved)
+        && !(IsBlockable && Board.HasPiecesBetween(EffectiveOrigin, MoveInfo.Target));
 }

@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace NinoChess;
 
-class BoardState(IBoard board)
+public class BoardState(IBoard board)
 {
     public bool ContainsPosition(Position p) => board.ContainsPosition(p);
     public bool HasPieceAt(Position p) => board.HasPieceAt(p);
@@ -75,19 +75,19 @@ class BoardState(IBoard board)
         _newBoardUpdates = [];
     }
 
-    public bool IsValidMove(Position p1, Position p2)
+    public bool IsValidMove(MoveInfo info)
     {
-        return board.GetPieceAt(p1).HasValidMoveAt(p2);
+        return board.GetPieceAt(info.Origin).HasValidMoveAt(info.Target);
     }
 
-    public IEnumerable<Move> GetValidMovesFrom(Position p)
+    public IEnumerable<Move> GetValidMovesFrom(Position origin)
     {
-        var piece = board.GetPieceAt(p);
+        var piece = board.GetPieceAt(origin);
 
-        return Position.Range(p - Position.Unit * piece.MaxMoveRange, Position.Unit * (1 + 2 * piece.MaxMoveRange)).Where(pos => board.ContainsPosition(pos) && piece.HasValidMoveAt(pos)).Select(piece.GetBestValidMoveAt);
+        return Position.Range(origin - Position.Unit * piece.MaxMoveRange, Position.Unit * (1 + 2 * piece.MaxMoveRange)).Where(pos => board.ContainsPosition(pos) && piece.HasValidMoveAt(pos)).Select(piece.GetBestValidMoveAt);
     }
 
-    public IEnumerable<Move> GetValidMovesTo(Position p)
+    public IEnumerable<Move> GetValidMovesTo(Position target)
     {
         throw new NotImplementedException();
     }

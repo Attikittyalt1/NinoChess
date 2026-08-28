@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace NinoChess;
 
-abstract class Piece(BoardState board, Position position, Transformation orientation, Allegience allegience) : IHasMoves, IHasPieceID
+public abstract class Piece(BoardState board, Position position, Transformation orientation, Allegience allegience) : IHasMoves, IHasPieceID
 {
     public abstract RegistryID ID { get; }
     public BoardState Board { get => board; set => board = value; }
@@ -43,13 +43,13 @@ abstract class Piece(BoardState board, Position position, Transformation orienta
     public virtual void OnSwap(BoardState.PieceSwapInfo info) { }
 }
 
-interface IHasMoves
+public interface IHasMoves
 {
     public bool HasValidMoveAt(Position p);
     public Move GetBestValidMoveAt(Position p);
 }
 
-interface IHasPieceID
+public interface IHasPieceID
 {
     public RegistryID ID { get; }
 }

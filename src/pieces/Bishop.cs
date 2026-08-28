@@ -17,7 +17,7 @@ class Bishop(BoardState board, Position position, Transformation orientation, Al
             relativePos.IsInDirection(Position.NE, 1, Range, true, true)
             )
         {
-            yield return new MoveOrAttackBlockable(Board, Position, p);
+            yield return new MoveOrAttackBlockable(Board, new(Position, p));
         }
     }
 }

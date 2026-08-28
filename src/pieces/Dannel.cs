@@ -14,17 +14,17 @@ class Dannel(BoardState board, Position position, Transformation orientation, Al
 
         if (relativePos == Position.S)
         {
-            yield return new MoveOrAttackBlockable(Board, Position, p);
+            yield return new MoveOrAttackBlockable(Board, new(Position, p));
         }
 
         if (relativePos == Position.N || relativePos == Position.N + Position.NW || relativePos == Position.N + Position.NE)
         {
-            yield return new AttackBlockable(Board, Position, p);
+            yield return new AttackBlockable(Board, new(Position, p));
         }
 
         if (relativePos == Position.NW || relativePos == Position.NE)
         {
-            yield return new SwapBlockable(Board, Position, p);
+            yield return new SwapBlockable(Board, new(Position, p));
         }
     }
 }

@@ -302,7 +302,7 @@ public class MyGame : Game
         {
             if (_moveColors.TryGetValue((MoveID)(Enum)move.ID, out var color))
             {
-                DrawBorder(move.Target, color);
+                DrawBorder(move.MoveInfo.Target, color);
             }
         }
     }
