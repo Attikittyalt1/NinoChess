@@ -10,8 +10,6 @@ public abstract class Move : ICanMove, IHasMoveID
     public abstract RegistryID ID { get; }
 }
 
-public readonly record struct MoveInfo(Position Origin, Position Target);
-
 public interface ICanMove
 {
     public void Execute(MutationService mutationService, EventService eventService);

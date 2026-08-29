@@ -25,7 +25,7 @@ public class MyGame : Game
     private Dictionary<MoveID, Color> _moveColors;
 
     private Grid? _grid;
-    private MoveManager? _moveManager;
+    private TurnManager? _turnManager;
 
     private Position _gridOffset => Position.Zero;
     private Position _gridCellSize => Position.Unit * 64;
@@ -35,12 +35,9 @@ public class MyGame : Game
     private bool _undoPrevDown = false;
     private bool _redoPrevDown = false;
 
-    record PieceDraggingData(bool IsDraggingPiece, Position InitialPiecePosition) : IDisposable
+    record PieceDraggingData(bool IsDraggingPiece, Position InitialPiecePosition)
     {
-        public void Dispose()
-        {
-
-        }
+       
     }
     private DraggingHandler<PieceDraggingData> draggingHandler;
 
@@ -58,7 +55,7 @@ public class MyGame : Game
         var eventService = new EventService();
         var mutationService = new MutationService();
 
-        _moveManager = new(boardState, mutationService, eventService);
+        _turnManager = new(boardState, mutationService, eventService);
 
         SetupBoard(boardState, eventService, mutationService);
 
@@ -95,9 +92,11 @@ public class MyGame : Game
             {
                 var pos = ConvertPixelPositionToGridPosition(handler.CurrentPosition);
 
-                if (_grid.ContainsPosition(pos) && _moveManager.IsValidMove(new(data.InitialPiecePosition, pos)))
+                var info = new MoveInfo(data.InitialPiecePosition, pos);
+
+                if (_grid.ContainsPosition(pos) && _turnManager.IsValid(info))
                 {
-                    _moveManager.Do(new(data.InitialPiecePosition, pos));
+                    _turnManager.Do(info);
                     return;
                 }
             }
@@ -113,14 +112,14 @@ public class MyGame : Game
 
     private void SetupBoard(BoardStateData boardState, EventService eventService, MutationService mutationService)
     {
-        Create(new Arab { Position = new(0, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-        Create(new Arab { Position = new(1, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-        Create(new Arab { Position = new(2, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-        Create(new Arab { Position = new(3, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-        Create(new Arab { Position = new(4, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-        Create(new Arab { Position = new(5, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-        Create(new Arab { Position = new(6, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-        Create(new Arab { Position = new(7, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
+        Create(new Pawn { Position = new(0, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
+        Create(new Pawn { Position = new(1, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
+        Create(new Pawn { Position = new(2, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
+        Create(new Pawn { Position = new(3, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
+        Create(new Pawn { Position = new(4, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
+        Create(new Pawn { Position = new(5, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
+        Create(new Pawn { Position = new(6, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
+        Create(new Pawn { Position = new(7, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
         Create(new Rook { Position = new(0, 0), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
         Create(new Knight { Position = new(1, 0), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
         Create(new Scholar { Position = new(2, 0), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
@@ -252,7 +251,7 @@ public class MyGame : Game
         {
             if (_undoPrevDown == true)
             {
-                _moveManager.Undo();
+                _turnManager.Undo();
             }
 
             _undoPrevDown = keyboardState.IsKeyDown(Keys.Z);
@@ -264,7 +263,7 @@ public class MyGame : Game
         {
             if (_redoPrevDown == true)
             {
-                _moveManager.Redo();
+                _turnManager.Redo();
             }
 
             _redoPrevDown = keyboardState.IsKeyDown(Keys.Y);
@@ -341,7 +340,7 @@ public class MyGame : Game
 
     private void DrawPieceMoves(Position gridPos)
     {
-        foreach (var move in _moveManager.GetValidMovesFrom(gridPos))
+        foreach (var move in _turnManager.GetValidMovesFrom(gridPos))
         {
             if (_moveColors.TryGetValue((MoveID)(Enum)move.ID, out var color))
             {
@@ -398,7 +397,7 @@ public class MyGame : Game
 }
 
 public class DraggingHandler<TData>
-    where TData : class, IDisposable
+    where TData : class
 {
     public bool IsDragging
     {
@@ -416,7 +415,6 @@ public class DraggingHandler<TData>
                 else
                 {
                     OnDragEnd?.Invoke(this, EventArgs.Empty);
-                    DraggingData?.Dispose();
                     DraggingData = null;
                 }
             }

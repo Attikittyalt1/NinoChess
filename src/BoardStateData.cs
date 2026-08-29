@@ -11,9 +11,9 @@ public class BoardStateData(IBoard board)
 {
     public IBoard Board => board;
 
-    public bool IsValidMove(MoveInfo info)
+    public bool IsValidMove(MoveInfo moveInfo)
     {
-        return board.GetPieceAt(info.Origin).HasValidMoveAt(info.Target);
+        return board.GetPieceAt(moveInfo.Origin).HasValidMoveAt(moveInfo.Target);
     }
 
     public IEnumerable<Move> GetValidMovesFrom(Position origin)
