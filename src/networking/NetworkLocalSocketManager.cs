@@ -13,7 +13,7 @@ namespace NinoChess.Networking;
 
 public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterface)
 {
-    private readonly List<Socket> _sockets = [];
+    private readonly Dictionary<int, Socket> _sockets = [];
     private bool _watchingLocal = false;
     private bool _listening = false;
 
@@ -54,12 +54,16 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
 
     public void StartWatchingSocket(Socket socket, CancellationToken cancellationToken, TaskCompletionSource started, TaskCompletionSource ended)
     {
-        if (_sockets.Contains(socket))
+        if (_sockets.ContainsValue(socket))
         {
             throw new ArgumentException("NetworkLocalSocketManager is already watching socket.");
         }
 
-        _sockets.Add(socket);
+        var id = 0;
+
+        while (_sockets.ContainsKey(id)) id++;
+
+        _sockets.Add(id, socket);
         Debug.WriteLine("Started watching socket");
 
         started.SetResult();
@@ -68,7 +72,7 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
         {
             while (socket.Connected)
             {
-                CheckRecieveDataFromSocket(socket, cancellationToken).Wait();
+                CheckRecieveDataFromSocket(socket, id, cancellationToken).Wait();
             }
         }
         catch (AggregateException ae)
@@ -80,7 +84,7 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
         }
         finally
         {
-            _sockets.Remove(socket);
+            _sockets.Remove(id);
             Debug.WriteLine("Stopped watching socket");
         }
 
@@ -139,7 +143,7 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
         }, cancellationToken);
     }
 
-    private async Task<bool> CheckRecieveDataFromSocket(Socket socket, CancellationToken cancellationToken)
+    private async Task<bool> CheckRecieveDataFromSocket(Socket socket, int id, CancellationToken cancellationToken)
     {
         var buffer = new byte[networkGameInterface.MaxBufferSizeFromNetwork];
 
@@ -147,17 +151,17 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
 
         if (received <= 0) return false;
 
-        Debug.WriteLine("Received data");
+        Debug.WriteLine("Received data from socket with id: " + id);
 
         var responseTask = new TaskCompletionSource<byte[]>();
-        var (respond, disconnect) = await networkGameInterface.UpdateWithDataAsync(buffer, received, responseTask);
+        var (respond, disconnect) = await networkGameInterface.OnRecieveDataAsync(buffer, received, id, responseTask);
 
         if (respond)
         {
             Debug.WriteLine("Sending response");
             var data = await responseTask.Task;
 
-            await SendDataToSockets(data, _sockets);
+            await SendDataToSocket(data, socket);
         }
         else
         {
@@ -169,18 +173,27 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
 
     public async Task CheckRecieveDataFromLocal(CancellationToken cancellationToken)
     {
-        var data = await networkGameInterface.GetLocalDataAsync(cancellationToken);
+        var (data, id) = await networkGameInterface.GetDataToSendAsync(cancellationToken);
 
-        Debug.WriteLine("Sending data");
-        await SendDataToSockets(data, _sockets);
+        if (id.HasValue)
+        {
+            if (!_sockets.TryGetValue(id.Value, out var socket))
+            {
+                throw new InvalidOperationException("Cannot send data to unregistered socket.");
+            }
+
+            Debug.WriteLine("Sending data to socket with id: " + id.Value);
+            await SendDataToSocket(data, socket);
+        } else
+        {
+            Debug.WriteLine("Sending data to connected sockets");
+            await SendDataToSockets(data, _sockets.Values);
+        }
     }
 
-    private async Task SendDataToSockets(byte[] data, List<Socket> sockets)
+    private async Task SendDataToSockets(byte[] data, IEnumerable<Socket> sockets)
     {
-        if (sockets.Count == 0)
-        {
-            return;
-        }
+        if (!sockets.Any()) return;
 
         await Task.WhenAll(sockets.Select(socket => SendDataToSocket(data, socket)));
     }

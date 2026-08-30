@@ -17,7 +17,7 @@ public class Client(INetworkLocalInterface gameInterface)
 
     private readonly Socket _socket = new (AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
     private CancellationTokenSource? _tokenSource;
-    private Task _tasksEnded;
+    private Task? _tasksEnded;
 
     public void Connect(IPEndPoint endPoint)
     {
@@ -31,9 +31,6 @@ public class Client(INetworkLocalInterface gameInterface)
         Debug.WriteLine("Connecting client.");
 
         _socket.Connect(endPoint);
-
-        byte[] tmp = new byte[1];
-        //_socket.Send(tmp, 0, 0);
 
         _tokenSource = new CancellationTokenSource();
 

@@ -120,4 +120,16 @@ public static class Util
         stream.Position = 0;
         return stream;
     }
+
+    extension<T>(T value)
+        where T : struct, IComparable, IFormattable, IConvertible
+    {
+        public bool TryParseEnum<TEnum>(out TEnum result)
+            where TEnum : struct, IComparable, IFormattable, IConvertible
+        {
+            bool success = Enum.IsDefined(typeof(TEnum), value);
+            result = success ? (TEnum)Enum.ToObject(typeof(TEnum), value) : default;
+            return success;
+        }
+    }
 }

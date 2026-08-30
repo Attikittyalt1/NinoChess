@@ -16,6 +16,6 @@ public interface INetworkLocalInterface
     public int MaxBufferSizeFromNetwork { get; }
     public int MaxBufferSizeFromLocal { get; }
 
-    public Task<(bool respond, bool disconnect)> UpdateWithDataAsync(byte[] data, int byteCount, TaskCompletionSource<byte[]> response);
-    public Task<byte[]> GetLocalDataAsync(CancellationToken cancellationToken);
+    public Task<(bool respond, bool disconnect)> OnRecieveDataAsync(byte[] data, int byteCount, int id, TaskCompletionSource<byte[]> response);
+    public Task<(byte[] data, int? id)> GetDataToSendAsync(CancellationToken cancellationToken);
 }

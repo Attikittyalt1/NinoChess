@@ -20,7 +20,7 @@ public class TestNetworkLocalInterface() : INetworkLocalInterface
 
     public ManualResetEvent DataUpdated { get; private set; } = new(false);
 
-    public async Task<(bool respond, bool disconnect)> UpdateWithDataAsync(byte[] data, int byteCount, TaskCompletionSource<byte[]> response)
+    public async Task<(bool respond, bool disconnect)> OnRecieveDataAsync(byte[] data, int byteCount, int id, TaskCompletionSource<byte[]> response)
     {
         var update = false;
 
@@ -62,13 +62,13 @@ public class TestNetworkLocalInterface() : INetworkLocalInterface
         }
     }
 
-    public async Task<byte[]> GetLocalDataAsync(CancellationToken cancellationToken)
+    public async Task<(byte[] data, int? id)> GetDataToSendAsync(CancellationToken cancellationToken)
     {
         cancellationToken.Register(() => Input.TrySetCanceled());
         var result = await Input.Task;
         Input = new();
 
-        return result;
+        return (result, null);
     }
 
     public string GetDataAsString()

@@ -22,7 +22,7 @@ public class Server(INetworkLocalInterface gameInterface)
     private readonly Socket _listener = new (AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
     private CancellationTokenSource? _tokenSource;
     private IPEndPoint? _endPoint;
-    private Task _tasksEnded;
+    private Task? _tasksEnded;
 
     public async Task Start(IPEndPoint endPoint)
     {
