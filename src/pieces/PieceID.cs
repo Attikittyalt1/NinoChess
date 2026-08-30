@@ -3,7 +3,6 @@
 public enum PieceID
 {
     None = 0,
-    Arab,
     Bishop,
     Dannel,
     Knight,

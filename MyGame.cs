@@ -191,7 +191,6 @@ public class MyGame : Game
         Add(PieceID.Dannel, new(4, 2), new(5, 2));
         Add(PieceID.Nuldar, new(6, 2), new(7, 2));
         AddWithTokens(PieceID.Scholar, new(0, 3), new(1, 3), [new(6, 0), new(7, 0)]);
-        Add(PieceID.Arab, new(2, 3), new(3, 3));
 
         void Add(PieceID id, Point primary, Point secondary)
         {
