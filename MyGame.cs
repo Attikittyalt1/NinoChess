@@ -378,7 +378,7 @@ public class MyGame : Game
     }
 
     private Position ConvertGridPositionToPixelPosition(Position pos) => MarginOffset + _gridOffset + _gridBorderSize + Position.MultiplyComponentWise(FlipYRegardingBoardSize(pos), _gridCellSize + _gridBorderSize);
-    private Position ConvertPixelPositionToGridPosition(Position pos) => FlipYRegardingBoardSize((Position) MyExtensions.DivideComponentWise(pos - MarginOffset - _gridOffset - _gridBorderSize, _gridCellSize + _gridBorderSize));
+    private Position ConvertPixelPositionToGridPosition(Position pos) => FlipYRegardingBoardSize((Position) Util.DivideComponentWise(pos - MarginOffset - _gridOffset - _gridBorderSize, _gridCellSize + _gridBorderSize));
     private bool IsPixelPositionOnCell(Position pos)
     {
         var boardPos = pos - MarginOffset - _gridOffset - _gridBorderSize;
@@ -388,7 +388,7 @@ public class MyGame : Game
             return false;
         }
 
-        return MyExtensions.ModulusComponentWise(boardPos, _gridCellSize + _gridBorderSize).IsBetween(Vector2.Zero, _gridCellSize, true, false);
+        return Util.ModulusComponentWise(boardPos, _gridCellSize + _gridBorderSize).IsBetween(Vector2.Zero, _gridCellSize, true, false);
     }
 
     private Position FlipYRegardingBoardSize(Position pos) => new Position(pos.X, _grid.Dimensions.Y - 1 - pos.Y);

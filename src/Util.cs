@@ -3,12 +3,10 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.IO;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters.Binary;
 
 namespace NinoChess;
 
-public static class MyExtensions
+public static class Util
 {
     extension<T>(T value) where T : IComparable<T>
     {
@@ -112,4 +110,14 @@ public static class MyExtensions
     public static Vector2 MultiplyComponentWise(Vector2 v1, Vector2 v2) => new(v1.X * v2.X, v1.Y * v2.Y);
     public static Vector2 DivideComponentWise(Vector2 v1, Vector2 v2) => new(v1.X / v2.X, v1.Y / v2.Y);
     public static Vector2 ModulusComponentWise(Vector2 v1, Vector2 v2) => new(v1.X % v2.X, v1.Y % v2.Y);
+
+    public static Stream GenerateStreamFromString(string s)
+    {
+        var stream = new MemoryStream();
+        var writer = new StreamWriter(stream);
+        writer.Write(s);
+        writer.Flush();
+        stream.Position = 0;
+        return stream;
+    }
 }
