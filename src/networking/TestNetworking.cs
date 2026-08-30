@@ -60,12 +60,23 @@ public class TestNetworking()
             {
                 if (_hasServer && matchline("startserver"))
                 {
-                    Task.Run(() => _server.Start(_serverEP));
+                    if (!_server.Running && !_server.Starting)
+                    {
+                        Task.Run(() => _server.Start(_serverEP));
+                    }
+                    else if (_server.Running)
+                    {
+                        Console.WriteLine("Error. Server is already started.");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error. Server is already starting.");
+                    }
                 }
 
                 if (_hasClient && matchline("connect"))
                 {
-                    if (!_client.Connected)
+                    if (!_client.Connected && !_client.Connecting)
                     {
                         clientCancelationTokenSource = new CancellationTokenSource();
                         Task.Run(() =>
@@ -91,16 +102,38 @@ public class TestNetworking()
                             }
                         }, clientCancelationTokenSource.Token);
                     }
+                    else if (_client.Connected)
+                    {
+                        Console.WriteLine("Error. Client is already connected.");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error. Client is already connecting.");
+                    }
                 }
 
                 if (_hasServer && matchline("stopserver"))
                 {
-                    Task.Run(() => _server.Stop());
+                    if (_server.Running)
+                    {
+                        if (!_server.HasClients)
+                        {
+                            _server.Stop();
+                        }
+                        else
+                        {
+                            Console.WriteLine("Error. Server cannot stop while it has connected clients. WILL FIX LATER");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error. Server is not running.");
+                    }
                 }
 
                 if (_hasClient && matchline("disconnect"))
                 {
-                    if (_client.Connected)
+                    if (_client.Connected && !_client.Disconnecting)
                     {
                         Task.Run(() =>
                         {
@@ -120,6 +153,10 @@ public class TestNetworking()
                     {
                         clientCancelationTokenSource.Cancel();
                     }
+                    else
+                    {
+                        Console.WriteLine("Error. Client is not connected.");
+                    }
                 }
 
                 if (_hasServer && matchline("printserver"))
@@ -134,26 +171,29 @@ public class TestNetworking()
 
                 if (_hasServer && matchline("inputserver"))
                 {
-                    if (!_server.Running)
+                    if (_server.Running)
                     {
-                        throw new InvalidOperationException("Servier is not running");
+                        var input = int.TryParse(Console.ReadLine(), out var value) ? value : -1;
+                        var data = BitConverter.GetBytes(input);
+                        _serverInterface.Input.SetResult(data);
                     }
-
-                    var input = int.TryParse(Console.ReadLine(), out var value) ? value : -1;
-                    var data = BitConverter.GetBytes(input);
-                    _serverInterface.Input.SetResult(data);
+                    else
+                    {
+                        Console.WriteLine("Error. Server is not running.");
+                    }
                 }
 
                 if (_hasClient && matchline("inputclient"))
                 {
-                    if (!_client.Connected)
+                    if (_client.Connected)
                     {
-                        throw new InvalidOperationException("Client is not connected");
+                        var input = int.TryParse(Console.ReadLine(), out var value) ? value : -1;
+                        var data = BitConverter.GetBytes(input);
+                        _clientInterface.Input.SetResult(data);
+                    } else
+                    {
+                        Console.WriteLine("Error. Client is not connected.");
                     }
-
-                    var input = int.TryParse(Console.ReadLine(), out var value) ? value : -1;
-                    var data = BitConverter.GetBytes(input);
-                    _clientInterface.Input.SetResult(data);
                 }
 
                 line = Console.ReadLine();

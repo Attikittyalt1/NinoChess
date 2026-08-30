@@ -13,11 +13,13 @@ public class Server(INetworkLocalInterface gameInterface)
     public bool Running { get; private set; } = false;
     public bool Starting { get; private set; } = false;
     public bool Stopping { get; private set; } = false;
+    public bool HasClients => Running && _manager.HasConnectedSockets;
 
     private Socket? _listener;
     private CancellationTokenSource? _cancellationTokenSource;
     private IPEndPoint? _endPoint;
     private Task? _tasksEnded;
+    private NetworkLocalSocketManager? _manager;
 
     public async Task StartAsync(IPEndPoint endPoint)
     {
@@ -44,7 +46,7 @@ public class Server(INetworkLocalInterface gameInterface)
 
             _cancellationTokenSource = new CancellationTokenSource();
 
-            var manager = new NetworkLocalSocketManager(gameInterface);
+            _manager = new NetworkLocalSocketManager(gameInterface);
 
             var startedLocal = new TaskCompletionSource();
             var startedListener = new TaskCompletionSource();
@@ -53,8 +55,8 @@ public class Server(INetworkLocalInterface gameInterface)
             var endedSockets = new TaskCompletionSource();
             _tasksEnded = Task.WhenAll(endedLocal.Task, startedListener.Task, endedSockets.Task);
 
-            _ = Task.Run(() => manager.StartWatchingLocal(startedLocal, endedLocal, _cancellationTokenSource.Token));
-            _ = Task.Run(() => manager.StartListeningSocket(_listener, startedListener, endedListener, endedSockets, _cancellationTokenSource.Token));
+            _ = Task.Run(() => _manager.StartWatchingLocal(startedLocal, endedLocal, _cancellationTokenSource.Token));
+            _ = Task.Run(() => _manager.StartListeningSocket(_listener, startedListener, endedListener, endedSockets, _cancellationTokenSource.Token));
 
             await Task.WhenAll(startedLocal.Task, startedListener.Task);
 
@@ -105,6 +107,7 @@ public class Server(INetworkLocalInterface gameInterface)
             _listener = null;
             _tasksEnded = null;
             _cancellationTokenSource = null;
+            _manager = null;
 
             Running = false;
 

@@ -16,6 +16,7 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
     private readonly Dictionary<int, Socket> _sockets = [];
     private bool _watchingLocal = false;
     private bool _listening = false;
+    public bool HasConnectedSockets => _sockets.Count > 0;
 
     public void StartWatchingLocal(TaskCompletionSource started, TaskCompletionSource ended, CancellationToken cancellationToken)
     {
