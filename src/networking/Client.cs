@@ -25,7 +25,7 @@ public class Client(INetworkLocalInterface gameInterface)
     {
         if (Connected == true)
         {
-            throw new InvalidOperationException("Cannot connect client that is already connected.");
+            throw new InvalidOperationException("Client is already connected.");
         }
 
         if (Connecting == true)
@@ -69,7 +69,7 @@ public class Client(INetworkLocalInterface gameInterface)
     {
         if (Connected == false)
         {
-            throw new InvalidOperationException("Cannot disconnect client that is not connected.");
+            throw new InvalidOperationException("Client is already disconnected.");
         }
 
         if (Disconnecting == true)

@@ -23,7 +23,7 @@ public class Server(INetworkLocalInterface gameInterface)
     {
         if (Running == true)
         {
-            throw new InvalidOperationException("Cannot start server that is already running.");
+            throw new InvalidOperationException("Server is already running.");
         }
 
         if (Starting == true)
@@ -70,7 +70,7 @@ public class Server(INetworkLocalInterface gameInterface)
     {
         if (Running == false)
         {
-            throw new InvalidOperationException("Cannot stop server that is not running.");
+            throw new InvalidOperationException("Server is already stopped.");
         }
 
         if (Stopping == true)
