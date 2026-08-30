@@ -14,14 +14,14 @@ public class TestNetworking()
     private bool _hasServer;
     private Server? _server = null;
     private TestNetworkLocalInterface? _serverInterface = null;
-    private IPEndPoint? _serverEP;
 
     private bool _hasClient;
     private Client? _client = null;
     private TestNetworkLocalInterface? _clientInterface = null;
-    private IPEndPoint? _clientEP;
 
-    public void CreateServer(int port)
+    private int _port = 25565;
+
+    public void CreateServer()
     {
         if (_hasServer == true)
         {
@@ -29,13 +29,12 @@ public class TestNetworking()
         }
 
         _hasServer = true;
-        _serverEP = new IPEndPoint(IPAddress.Any, port);
 
         _serverInterface = new TestNetworkLocalInterface();
         _server = new Server(_serverInterface);
     }
 
-    public void CreateClient(string ip, int port)
+    public void CreateClient()
     {
         if (_hasClient == true)
         {
@@ -43,7 +42,6 @@ public class TestNetworking()
         }
 
         _hasClient = true;
-        _clientEP = new IPEndPoint(IPAddress.Parse(ip), port);
 
         _clientInterface = new TestNetworkLocalInterface();
         _client = new Client(_clientInterface);
@@ -62,7 +60,9 @@ public class TestNetworking()
                 {
                     if (!_server.Running && !_server.Starting)
                     {
-                        Task.Run(() => _server.Start(_serverEP));
+                        var endpoint = new IPEndPoint(IPAddress.Any, _port);
+
+                        Task.Run(() => _server.Start(endpoint));
                     }
                     else if (_server.Running)
                     {
@@ -74,16 +74,19 @@ public class TestNetworking()
                     }
                 }
 
-                if (_hasClient && matchline("connect"))
+                else if (_hasClient && matchline("connect"))
                 {
                     if (!_client.Connected && !_client.Connecting)
                     {
                         clientCancelationTokenSource = new CancellationTokenSource();
+                        var address = IPAddress.Parse(Console.ReadLine());
+                        var endpoint = new IPEndPoint(address, _port);
+
                         Task.Run(() =>
                         {
                             try
                             {
-                                _client.ConnectAsync(_clientEP, clientCancelationTokenSource.Token).Wait(clientCancelationTokenSource.Token);
+                                _client.ConnectAsync(endpoint, clientCancelationTokenSource.Token).Wait(clientCancelationTokenSource.Token);
                             }
                             catch (OperationCanceledException e)
                             {
@@ -112,7 +115,7 @@ public class TestNetworking()
                     }
                 }
 
-                if (_hasServer && matchline("stopserver"))
+                else if(_hasServer && matchline("stopserver"))
                 {
                     if (_server.Running)
                     {
@@ -131,7 +134,7 @@ public class TestNetworking()
                     }
                 }
 
-                if (_hasClient && matchline("disconnect"))
+                else if(_hasClient && matchline("disconnect"))
                 {
                     if (_client.Connected && !_client.Disconnecting)
                     {
@@ -159,17 +162,17 @@ public class TestNetworking()
                     }
                 }
 
-                if (_hasServer && matchline("printserver"))
+                else if(_hasServer && matchline("printserver"))
                 {
                     Console.WriteLine(_serverInterface.GetDataAsInt());
                 }
 
-                if (_hasClient && matchline("printclient"))
+                else if(_hasClient && matchline("printclient"))
                 {
                     Console.WriteLine(_clientInterface.GetDataAsInt());
                 }
 
-                if (_hasServer && matchline("inputserver"))
+                else if(_hasServer && matchline("inputserver"))
                 {
                     if (_server.Running)
                     {
@@ -183,7 +186,7 @@ public class TestNetworking()
                     }
                 }
 
-                if (_hasClient && matchline("inputclient"))
+                else if(_hasClient && matchline("inputclient"))
                 {
                     if (_client.Connected)
                     {
@@ -194,6 +197,16 @@ public class TestNetworking()
                     {
                         Console.WriteLine("Error. Client is not connected.");
                     }
+                }
+
+                else if(matchline("setport"))
+                {
+                    _port = int.Parse(Console.ReadLine());
+                }
+
+                else
+                {
+                    Console.WriteLine("Invalid command. Please try again.");
                 }
 
                 line = Console.ReadLine();
