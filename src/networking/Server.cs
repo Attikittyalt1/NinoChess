@@ -11,20 +11,27 @@ namespace NinoChess.Networking;
 public class Server(INetworkLocalInterface gameInterface)
 {
     public bool Running { get; private set; } = false;
+    public bool Starting { get; private set; } = false;
+    public bool Stopping { get; private set; } = false;
 
     private readonly Socket _listener = new (AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
     private CancellationTokenSource? _tokenSource;
     private IPEndPoint? _endPoint;
     private Task? _tasksEnded;
 
-    public void Start(IPEndPoint endPoint)
+    public async Task StartAsync(IPEndPoint endPoint)
     {
         if (Running == true)
         {
             throw new InvalidOperationException("Cannot start server that is already running.");
         }
 
-        Running = true;
+        if (Starting == true)
+        {
+            throw new InvalidOperationException("Server is already starting.");
+        }
+
+        Starting = true;
 
         Debug.WriteLine("Starting server.");
 
@@ -46,19 +53,32 @@ public class Server(INetworkLocalInterface gameInterface)
         _ = Task.Run(() => manager.StartWatchingLocal(_tokenSource.Token, startedLocal, endedLocal));
         _ = Task.Run(() => manager.StartListeningSocket(_listener, _tokenSource.Token, startedListener, endedListener, endedSockets));
 
-        Task.WaitAll(startedLocal.Task, startedListener.Task);
+        await Task.WhenAll(startedLocal.Task, startedListener.Task);
+
+        Running = true;
+        Starting = false;
 
         Debug.WriteLine("Started server.");
     }
 
-    public void Stop()
+    public void Start(IPEndPoint endPoint)
+    {
+        StartAsync(endPoint).Wait();
+    }
+
+    public async Task StopAsync()
     {
         if (Running == false)
         {
             throw new InvalidOperationException("Cannot stop server that is not running.");
         }
 
-        Running = false;
+        if (Stopping == true)
+        {
+            throw new InvalidOperationException("Server is already stopping.");
+        }
+
+        Stopping = true;
 
         Debug.WriteLine("Stopping server.");
 
@@ -66,11 +86,19 @@ public class Server(INetworkLocalInterface gameInterface)
 
         _tokenSource.Cancel();
 
-        _tasksEnded.Wait();
+        await _tasksEnded;
 
         _listener.Close();
 
+        Running = false;
+        Stopping = false;
+
         Debug.WriteLine("Stopped server.");
+    }
+
+    public void Stop()
+    {
+        StopAsync().Wait();
     }
 
     private bool IsSocketHealthy()

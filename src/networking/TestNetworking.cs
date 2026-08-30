@@ -58,31 +58,34 @@ public class TestNetworking()
             {
                 if (_hasServer && matchline("startserver"))
                 {
-                    _server.Start(_serverEP);
+                    Task.Run(() => _server.Start(_serverEP));
                 }
 
                 if (_hasClient && matchline("connect"))
                 {
-                    _client.Connect(_clientEP);
+                    Task.Run(() => _client.Connect(_clientEP));
                 }
 
                 if (_hasServer && matchline("stopserver"))
                 {
-                    _server.Stop();
+                    Task.Run(() => _server.Stop());
                 }
 
                 if (_hasClient && matchline("disconnect"))
                 {
-                    _clientInterface.Input.SetResult(BitConverter.GetBytes(-2));
-
-                    do
+                    Task.Run(() =>
                     {
-                        _clientInterface.DataUpdated.WaitOne();
-                        _clientInterface.DataUpdated.Reset();
-                    }
-                    while (_clientInterface.GetDataAsInt() != -3);
+                        _clientInterface.Input.SetResult(BitConverter.GetBytes(-2));
 
-                    _client.Disconnect();
+                        do
+                        {
+                            _clientInterface.DataUpdated.WaitOne();
+                            _clientInterface.DataUpdated.Reset();
+                        }
+                        while (_clientInterface.GetDataAsInt() != -3);
+
+                        _client.Disconnect();
+                    });
                 }
 
                 if (_hasServer && matchline("printserver"))
@@ -124,12 +127,12 @@ public class TestNetworking()
 
             if (_hasClient && _client.Connected)
             {
-                _client.Disconnect();
+                _client.DisconnectAsync();
             }
 
             if (_hasServer && _server.Running)
             {
-                _server.Stop();
+                _server.StopAsync();
             }
 
             bool matchline(string value) => line?.Equals(value, StringComparison.OrdinalIgnoreCase) ?? false;

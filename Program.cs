@@ -1,4 +1,5 @@
-﻿using NinoChess.Networking;
+﻿using NinoChess;
+using NinoChess.Networking;
 
 var test = new TestNetworking();
 
