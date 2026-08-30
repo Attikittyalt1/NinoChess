@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "NinoChess": {
+      "commandName": "Project",
+      "commandLineArgs": "172.220.68.48\r\n25565"
+    }
+  }
+}

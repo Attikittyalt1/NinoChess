@@ -1,11 +1,13 @@
-﻿using NinoChess;
-using NinoChess.Networking;
+﻿using NinoChess.Networking;
 
 var test = new TestNetworking();
 
-test.CreateServer(25565);
+var ip = args[0];
+var port = int.Parse(args[1]);
 
-test.CreateClient("172.220.68.48", 25565);
+test.CreateServer(port);
+
+test.CreateClient(ip, int.Parse(args[1]));
 
 test.StartConsoleInterface();
 
