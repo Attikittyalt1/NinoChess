@@ -26,7 +26,7 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
         }
 
         _watchingLocal = true;
-        Debug.WriteLine("Started watching local");
+        Console.WriteLine("Started watching local");
 
         started.SetResult();
 
@@ -51,7 +51,7 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
         finally
         {
             _watchingLocal = false;
-            Debug.WriteLine("Stopped watching local");
+            Console.WriteLine("Stopped watching local");
         }
 
         ended.SetResult();
@@ -69,7 +69,7 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
         while (_sockets.ContainsKey(id)) id++;
 
         _sockets.Add(id, socket);
-        Debug.WriteLine("Started watching socket");
+        Console.WriteLine("Started watching socket");
 
         started.SetResult();
 
@@ -97,7 +97,7 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
         finally
         {
             _sockets.Remove(id);
-            Debug.WriteLine("Stopped watching socket");
+            Console.WriteLine("Stopped watching socket");
         }
 
         ended.SetResult();
@@ -111,7 +111,7 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
         }
 
         _listening = true;
-        Debug.WriteLine("Started listening to socket");
+        Console.WriteLine("Started listening to socket");
 
         started.SetResult();
 
@@ -143,7 +143,7 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
         finally
         {
             _listening = false;
-            Debug.WriteLine("Stopped listening to socket");
+            Console.WriteLine("Stopped listening to socket");
         }
 
         endedListening.SetResult();
@@ -167,21 +167,21 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
 
         if (received <= 0) return false;
 
-        Debug.WriteLine("Received data from socket with id: " + id);
+        Console.WriteLine("Received data from socket with id: " + id);
 
         var responseTask = new TaskCompletionSource<byte[]>();
         var (respond, disconnect) = await networkGameInterface.OnRecieveDataAsync(buffer, received, id, responseTask);
 
         if (respond)
         {
-            Debug.WriteLine("Sending response");
+            Console.WriteLine("Sending response");
             var data = await responseTask.Task;
 
             await SendDataToSocket(data, socket);
         }
         else
         {
-            Debug.WriteLine("Finished reponse chain");
+            Console.WriteLine("Finished reponse chain");
         }
 
         return disconnect;
@@ -198,11 +198,11 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
                 throw new InvalidOperationException("Cannot send data to unregistered socket.");
             }
 
-            Debug.WriteLine("Sending data to socket with id: " + id.Value);
+            Console.WriteLine("Sending data to socket with id: " + id.Value);
             await SendDataToSocket(data, socket);
         } else
         {
-            Debug.WriteLine("Sending data to connected sockets");
+            Console.WriteLine("Sending data to connected sockets");
             await SendDataToSockets(data, _sockets.Values);
         }
     }
