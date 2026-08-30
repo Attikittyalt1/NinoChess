@@ -1,15 +1,8 @@
-﻿using MathNet.Numerics;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Data;
+﻿using System;
 using System.Diagnostics;
-using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,21 +10,21 @@ namespace NinoChess.Networking;
 
 public class Server(INetworkLocalInterface gameInterface)
 {
-    public bool Active { get; private set; } = false;
+    public bool Running { get; private set; } = false;
 
     private readonly Socket _listener = new (AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
     private CancellationTokenSource? _tokenSource;
     private IPEndPoint? _endPoint;
     private Task? _tasksEnded;
 
-    public async Task Start(IPEndPoint endPoint)
+    public void Start(IPEndPoint endPoint)
     {
-        if (Active == true)
+        if (Running == true)
         {
             throw new InvalidOperationException("Cannot start server that is already running.");
         }
 
-        Active = true;
+        Running = true;
 
         Debug.WriteLine("Starting server.");
 
@@ -58,14 +51,14 @@ public class Server(INetworkLocalInterface gameInterface)
         Debug.WriteLine("Started server.");
     }
 
-    public async Task Stop()
+    public void Stop()
     {
-        if (Active == false)
+        if (Running == false)
         {
             throw new InvalidOperationException("Cannot stop server that is not running.");
         }
 
-        Active = false;
+        Running = false;
 
         Debug.WriteLine("Stopping server.");
 
@@ -82,7 +75,7 @@ public class Server(INetworkLocalInterface gameInterface)
 
     private bool IsSocketHealthy()
     {
-        if (!_listener.Connected || !Active)
+        if (!_listener.Connected || !Running)
         {
             return false;
         }
