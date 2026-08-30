@@ -35,7 +35,7 @@ public class Server(INetworkLocalInterface gameInterface)
 
         Starting = true;
 
-        Debug.WriteLine("Starting server.");
+        Console.WriteLine("Starting server.");
 
         try
         {
@@ -62,7 +62,7 @@ public class Server(INetworkLocalInterface gameInterface)
 
             Running = true;
 
-            Debug.WriteLine("Started server.");
+            Console.WriteLine("Started server.");
 
         } 
         finally
@@ -90,7 +90,7 @@ public class Server(INetworkLocalInterface gameInterface)
 
         Stopping = true;
 
-        Debug.WriteLine("Stopping server.");
+        Console.WriteLine("Stopping server.");
 
         try
         {
@@ -111,7 +111,7 @@ public class Server(INetworkLocalInterface gameInterface)
 
             Running = false;
 
-            Debug.WriteLine("Stopped server.");
+            Console.WriteLine("Stopped server.");
         } 
         finally
         {

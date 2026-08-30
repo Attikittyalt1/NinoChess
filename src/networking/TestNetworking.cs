@@ -74,7 +74,7 @@ public class TestNetworking()
                     }
                 }
 
-                else if (_hasClient && matchline("connect"))
+                else if (_hasClient && matchline("connectto"))
                 {
                     if (!_client.Connected && !_client.Connecting)
                     {

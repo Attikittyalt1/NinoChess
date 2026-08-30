@@ -35,7 +35,7 @@ public class Client(INetworkLocalInterface gameInterface)
 
         Connecting = true;
 
-        Debug.WriteLine("Connecting client.");
+        Console.WriteLine("Connecting client.");
 
         try
         {
@@ -60,8 +60,7 @@ public class Client(INetworkLocalInterface gameInterface)
 
             Connected = true;
 
-            Debug.WriteLine("Connected client.");
-
+            Console.WriteLine("Connected client.");
         } 
         finally
         {
@@ -88,7 +87,7 @@ public class Client(INetworkLocalInterface gameInterface)
 
         Disconnecting = true;
 
-        Debug.WriteLine("Disconecting client.");
+        Console.WriteLine("Disconecting client.");
 
         try
         {
@@ -106,7 +105,7 @@ public class Client(INetworkLocalInterface gameInterface)
             _tasksEnded = null;
             Connected = false;
 
-            Debug.WriteLine("Disconnected client.");
+            Console.WriteLine("Disconnected client.");
         }
         finally
         {
