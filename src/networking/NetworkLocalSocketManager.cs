@@ -17,7 +17,7 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
     private bool _watchingLocal = false;
     private bool _listening = false;
 
-    public void StartWatchingLocal(CancellationToken cancellationToken, TaskCompletionSource started, TaskCompletionSource ended)
+    public void StartWatchingLocal(TaskCompletionSource started, TaskCompletionSource ended, CancellationToken cancellationToken)
     {
         if (_watchingLocal)
         {
@@ -36,11 +36,15 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
                 CheckRecieveDataFromLocal(cancellationToken).Wait();
             }
         }
+        catch (OperationCanceledException e)
+        {
+
+        }
         catch (AggregateException ae)
         {
             ae.Handle(ex =>
             {
-                return ex is TaskCanceledException;
+                return ex is OperationCanceledException;
             });
         }
         finally
@@ -52,7 +56,7 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
         ended.SetResult();
     }
 
-    public void StartWatchingSocket(Socket socket, CancellationToken cancellationToken, TaskCompletionSource started, TaskCompletionSource ended)
+    public void StartWatchingSocket(Socket socket, TaskCompletionSource started, TaskCompletionSource ended, CancellationToken cancellationToken)
     {
         if (_sockets.ContainsValue(socket))
         {
@@ -72,14 +76,21 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
         {
             while (socket.Connected)
             {
-                CheckRecieveDataFromSocket(socket, id, cancellationToken).Wait();
+                if (CheckRecieveDataFromSocket(socket, id, cancellationToken).Result)
+                {
+                    break;
+                }
             }
+        }
+        catch (OperationCanceledException e)
+        {
+
         }
         catch (AggregateException ae)
         {
             ae.Handle(ex =>
             {
-                return ex is TaskCanceledException;
+                return ex is OperationCanceledException;
             });
         }
         finally
@@ -91,7 +102,7 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
         ended.SetResult();
     }
 
-    public void StartListeningSocket(Socket socket, CancellationToken cancellationToken, TaskCompletionSource started, TaskCompletionSource endedListening, TaskCompletionSource endedSockets)
+    public void StartListeningSocket(Socket socket, TaskCompletionSource started, TaskCompletionSource endedListening, TaskCompletionSource endedSockets, CancellationToken cancellationToken)
     {
         if (_listening)
         {
@@ -112,16 +123,20 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
             {
                 var startedSocket = new TaskCompletionSource();
                 var endedSocket = new TaskCompletionSource();
-                CheckNewConnection(socket, cancellationToken, startedSocket, endedSocket).Wait();
+                CheckNewConnection(socket, startedSocket, endedSocket, cancellationToken).Wait();
 
                 tasks.Add(endedSocket.Task);
             }
+        }
+        catch (OperationCanceledException e)
+        {
+
         }
         catch (AggregateException ae)
         {
             ae.Handle(ex =>
             {
-                return ex is TaskCanceledException;
+                return ex is OperationCanceledException;
             });
         }
         finally
@@ -133,13 +148,13 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
         endedListening.SetResult();
     }
 
-    private async Task CheckNewConnection(Socket socket, CancellationToken cancellationToken, TaskCompletionSource startedSocket, TaskCompletionSource endedSocket)
+    private async Task CheckNewConnection(Socket socket, TaskCompletionSource startedSocket, TaskCompletionSource endedSocket, CancellationToken cancellationToken)
     {
         var newSocket = await socket.AcceptAsync(cancellationToken);
 
         _ = Task.Run(() =>
         {
-            StartWatchingSocket(newSocket, cancellationToken, startedSocket, endedSocket);
+            StartWatchingSocket(newSocket, startedSocket, endedSocket, cancellationToken);
         }, cancellationToken);
     }
 

@@ -65,10 +65,23 @@ public class TestNetworkLocalInterface() : INetworkLocalInterface
     public async Task<(byte[] data, int? id)> GetDataToSendAsync(CancellationToken cancellationToken)
     {
         cancellationToken.Register(() => Input.TrySetCanceled());
-        var result = await Input.Task;
-        Input = new();
 
-        return (result, null);
+        try
+        {
+            var result = await Input.Task;
+
+            return (result, null);
+        } 
+        catch (OperationCanceledException e)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return ([], null);
+        }
+        finally
+        {
+            Input = new();
+        }
     }
 
     public string GetDataAsString()

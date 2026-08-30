@@ -53,6 +53,8 @@ public class TestNetworking()
     {
         new Thread(() =>
         {
+            CancellationTokenSource? clientCancelationTokenSource = default;
+
             var line = Console.ReadLine();
             while (!(line?.Equals("quit", StringComparison.OrdinalIgnoreCase) ?? false))
             {
@@ -63,7 +65,32 @@ public class TestNetworking()
 
                 if (_hasClient && matchline("connect"))
                 {
-                    Task.Run(() => _client.Connect(_clientEP));
+                    if (!_client.Connected)
+                    {
+                        clientCancelationTokenSource = new CancellationTokenSource();
+                        Task.Run(() =>
+                        {
+                            try
+                            {
+                                _client.ConnectAsync(_clientEP, clientCancelationTokenSource.Token).Wait(clientCancelationTokenSource.Token);
+                            }
+                            catch (OperationCanceledException e)
+                            {
+                                
+                            }
+                            catch (AggregateException ae)
+                            {
+                                ae.Handle(ex =>
+                                {
+                                    return ex is OperationCanceledException;
+                                });
+                            }
+                            finally
+                            {
+                                clientCancelationTokenSource = null;
+                            }
+                        }, clientCancelationTokenSource.Token);
+                    }
                 }
 
                 if (_hasServer && matchline("stopserver"))
@@ -73,19 +100,26 @@ public class TestNetworking()
 
                 if (_hasClient && matchline("disconnect"))
                 {
-                    Task.Run(() =>
+                    if (_client.Connected)
                     {
-                        _clientInterface.Input.SetResult(BitConverter.GetBytes(-2));
-
-                        do
+                        Task.Run(() =>
                         {
-                            _clientInterface.DataUpdated.WaitOne();
-                            _clientInterface.DataUpdated.Reset();
-                        }
-                        while (_clientInterface.GetDataAsInt() != -3);
+                            _clientInterface.Input.SetResult(BitConverter.GetBytes(-2));
 
-                        _client.Disconnect();
-                    });
+                            do
+                            {
+                                _clientInterface.DataUpdated.WaitOne();
+                                _clientInterface.DataUpdated.Reset();
+                            }
+                            while (_clientInterface.GetDataAsInt() != -3);
+
+                            _client.Disconnect();
+                        });
+                    }
+                    else if (_client.Connecting)
+                    {
+                        clientCancelationTokenSource.Cancel();
+                    }
                 }
 
                 if (_hasServer && matchline("printserver"))

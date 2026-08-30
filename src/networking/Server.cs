@@ -14,8 +14,8 @@ public class Server(INetworkLocalInterface gameInterface)
     public bool Starting { get; private set; } = false;
     public bool Stopping { get; private set; } = false;
 
-    private readonly Socket _listener = new (AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-    private CancellationTokenSource? _tokenSource;
+    private Socket? _listener;
+    private CancellationTokenSource? _cancellationTokenSource;
     private IPEndPoint? _endPoint;
     private Task? _tasksEnded;
 
@@ -35,30 +35,38 @@ public class Server(INetworkLocalInterface gameInterface)
 
         Debug.WriteLine("Starting server.");
 
-        _endPoint = endPoint;
-        _listener.Bind(endPoint);
-        _listener.Listen();
+        try
+        {
+            _listener = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _endPoint = endPoint;
+            _listener.Bind(endPoint);
+            _listener.Listen();
 
-        _tokenSource = new CancellationTokenSource();
+            _cancellationTokenSource = new CancellationTokenSource();
 
-        var manager = new NetworkLocalSocketManager(gameInterface);
+            var manager = new NetworkLocalSocketManager(gameInterface);
 
-        var startedLocal = new TaskCompletionSource();
-        var startedListener = new TaskCompletionSource();
-        var endedLocal = new TaskCompletionSource();
-        var endedListener = new TaskCompletionSource();
-        var endedSockets = new TaskCompletionSource();
-        _tasksEnded = Task.WhenAll(endedLocal.Task, startedListener.Task, endedSockets.Task);
+            var startedLocal = new TaskCompletionSource();
+            var startedListener = new TaskCompletionSource();
+            var endedLocal = new TaskCompletionSource();
+            var endedListener = new TaskCompletionSource();
+            var endedSockets = new TaskCompletionSource();
+            _tasksEnded = Task.WhenAll(endedLocal.Task, startedListener.Task, endedSockets.Task);
 
-        _ = Task.Run(() => manager.StartWatchingLocal(_tokenSource.Token, startedLocal, endedLocal));
-        _ = Task.Run(() => manager.StartListeningSocket(_listener, _tokenSource.Token, startedListener, endedListener, endedSockets));
+            _ = Task.Run(() => manager.StartWatchingLocal(startedLocal, endedLocal, _cancellationTokenSource.Token));
+            _ = Task.Run(() => manager.StartListeningSocket(_listener, startedListener, endedListener, endedSockets, _cancellationTokenSource.Token));
 
-        await Task.WhenAll(startedLocal.Task, startedListener.Task);
+            await Task.WhenAll(startedLocal.Task, startedListener.Task);
 
-        Running = true;
-        Starting = false;
+            Running = true;
 
-        Debug.WriteLine("Started server.");
+            Debug.WriteLine("Started server.");
+
+        } 
+        finally
+        {
+            Starting = false;
+        }
     }
 
     public void Start(IPEndPoint endPoint)
@@ -82,18 +90,30 @@ public class Server(INetworkLocalInterface gameInterface)
 
         Debug.WriteLine("Stopping server.");
 
-        _endPoint = null;
+        try
+        {
+            if (!_cancellationTokenSource.IsCancellationRequested)
+            {
+                _cancellationTokenSource.Cancel();
+            }
 
-        _tokenSource.Cancel();
+            await _tasksEnded;
 
-        await _tasksEnded;
+            _listener.Close();
 
-        _listener.Close();
+            _endPoint = null;
+            _listener = null;
+            _tasksEnded = null;
+            _cancellationTokenSource = null;
 
-        Running = false;
-        Stopping = false;
+            Running = false;
 
-        Debug.WriteLine("Stopped server.");
+            Debug.WriteLine("Stopped server.");
+        } 
+        finally
+        {
+            Stopping = false;
+        }
     }
 
     public void Stop()

@@ -17,11 +17,11 @@ public class Client(INetworkLocalInterface gameInterface)
     public bool Connecting { get; private set; } = false;
     public bool Disconnecting { get; private set; } = false;
 
-    private readonly Socket _socket = new (AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-    private CancellationTokenSource? _tokenSource;
+    private Socket _socket;
+    private CancellationTokenSource? _cancellationTokenSource;
     private Task? _tasksEnded;
 
-    public async Task ConnectAsync(IPEndPoint endPoint)
+    public async Task ConnectAsync(IPEndPoint endPoint, CancellationToken cancellationToken = default)
     {
         if (Connected == true)
         {
@@ -37,27 +37,36 @@ public class Client(INetworkLocalInterface gameInterface)
 
         Debug.WriteLine("Connecting client.");
 
-        await _socket.ConnectAsync(endPoint);
+        try
+        {
+            _socket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-        _tokenSource = new CancellationTokenSource();
+            await _socket.ConnectAsync(endPoint, cancellationToken);
 
-        var manager = new NetworkLocalSocketManager(gameInterface);
+            _cancellationTokenSource = new CancellationTokenSource();
 
-        var startedLocal = new TaskCompletionSource();
-        var startedSocket = new TaskCompletionSource();
-        var endedLocal = new TaskCompletionSource();
-        var endedSocket = new TaskCompletionSource();
-        _tasksEnded = Task.WhenAll(endedLocal.Task, endedSocket.Task);
+            var manager = new NetworkLocalSocketManager(gameInterface);
 
-        _ = Task.Run(() => manager.StartWatchingLocal(_tokenSource.Token, startedLocal, endedLocal));
-        _ = Task.Run(() => manager.StartWatchingSocket(_socket, _tokenSource.Token, startedSocket, endedSocket));
+            var startedLocal = new TaskCompletionSource();
+            var startedSocket = new TaskCompletionSource();
+            var endedLocal = new TaskCompletionSource();
+            var endedSocket = new TaskCompletionSource();
+            _tasksEnded = Task.WhenAll(endedLocal.Task, endedSocket.Task);
 
-        await Task.WhenAll(startedLocal.Task, startedSocket.Task);
+            _ = Task.Run(() => manager.StartWatchingLocal(startedLocal, endedLocal, _cancellationTokenSource.Token), _cancellationTokenSource.Token);
+            _ = Task.Run(() => manager.StartWatchingSocket(_socket, startedSocket, endedSocket, _cancellationTokenSource.Token), _cancellationTokenSource.Token);
 
-        Connected = true;
-        Connecting = false;
+            await Task.WhenAll(startedLocal.Task, startedSocket.Task);
 
-        Debug.WriteLine("Connected client.");
+            Connected = true;
+
+            Debug.WriteLine("Connected client.");
+
+        } 
+        finally
+        {
+            Connecting = false;
+        }
     }
 
     public void Connect(IPEndPoint endPoint)
@@ -81,16 +90,28 @@ public class Client(INetworkLocalInterface gameInterface)
 
         Debug.WriteLine("Disconecting client.");
 
-        _tokenSource.Cancel();
+        try
+        {
+            if (!_cancellationTokenSource.IsCancellationRequested)
+            {
+                _cancellationTokenSource.Cancel();
+            }
 
-        await _tasksEnded;
+            await _tasksEnded;
 
-        await _socket.DisconnectAsync(false);
+            await _socket.DisconnectAsync(false);
 
-        Connected = false;
-        Disconnecting = false;
+            _socket = null;
+            _cancellationTokenSource = null;
+            _tasksEnded = null;
+            Connected = false;
 
-        Debug.WriteLine("Disconnected client.");
+            Debug.WriteLine("Disconnected client.");
+        }
+        finally
+        {
+            Disconnecting = false;
+        }
     }
 
     public void Disconnect()
