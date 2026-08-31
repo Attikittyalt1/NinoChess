@@ -335,6 +335,7 @@ public class NetworkingCommandLineApp
             Task.Run(async () =>
             {
                 await data.core.ConnectAsync(new(ipaddress, _port), cancellationTokenSource.Token);
+                data.layer.Input.SetResult(CustomPacket.Connect);
             }, cancellationTokenSource.Token);
         });
 
@@ -376,6 +377,9 @@ public class NetworkingCommandLineApp
 
             Task.Run(() =>
             {
+
+                data.layer.Input.SetResult(CustomPacket.Disconnect);
+                data.layer.Disconnected.WaitOne();
                 data.core.Disconnect();
             });
         });
@@ -447,11 +451,29 @@ public class NetworkingCommandLineApp
 
         #endregion exit
 
+        #region setport
+
+        var setport = new Command("setport")
+        {
+            new Argument<int>("port")
+        };
+
+        setport.SetAction(parseResult =>
+        {
+            var port = parseResult.GetRequiredValue<int>("port");
+
+            _port = port;
+            return 0;
+        });
+
+        #endregion setport
+
         var rootCommand = new RootCommand("Basic networking playground for NinoChess")
         {
             serverRoot,
             clientRoot,
-            exit
+            exit,
+            setport
         };
 
         string input;
