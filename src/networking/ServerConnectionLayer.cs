@@ -164,7 +164,7 @@ public class ServerConnectionLayer() : GenericConnectionLayer
                     throw new NotImplementedException();
                     break;
                 }
-            default: throw new ArgumentException("Server could not send packet. Format invalid for server.");
+            default: throw new ArgumentException(string.Format("Server could not send packet. Result format invalid for server: {0}", Enum.GetName(packet.Format)));
         }
 
         return (response, disconnect);
@@ -178,7 +178,24 @@ public class ServerConnectionLayer() : GenericConnectionLayer
     {
         switch (type)
         {
-            default: throw new ArgumentException("Server could not send packet. Result format invalid for server.");
+            case PacketFormat.MessageInteger:
+                {
+
+                    Console.WriteLine("Successfully sent integer to client.");
+                    break;
+                }
+            case PacketFormat.MessageString:
+                {
+                    Console.WriteLine("Successfully sent string to client.");
+                    break;
+                }
+            case PacketFormat.MessageObject:
+                {
+
+                    throw new NotImplementedException();
+                    break;
+                }
+            default: throw new ArgumentException(string.Format("Server could not send packet. Result format invalid for server: {0}", Enum.GetName(type)));
         }
     }
 }

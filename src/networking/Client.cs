@@ -65,15 +65,18 @@ public class Client(INetworkLocalConnectionLayer connectionLayer)
 
     public async Task ConnectAsync(IPEndPoint endPoint, CancellationToken cancellationToken = default)
     {
-        if (Starting) throw new InvalidOperationException("Client is still starting.");
 
-        if (!Running) throw new InvalidOperationException("Client is not running.");
+        if (Connecting) throw new InvalidOperationException("Client is already connecting.");
 
-        if (Stopping) throw new InvalidOperationException("Client is stopping.");
+        if (Disconnecting) throw new InvalidOperationException("Client is still disconnecting.");
 
         if (Connected) throw new InvalidOperationException("Client is already connected.");
 
-        if (Connecting) throw new InvalidOperationException("Client is already connecting.");
+        if (Starting) throw new InvalidOperationException("Client is still starting.");
+
+        if (Stopping) throw new InvalidOperationException("Client is still stopping.");
+
+        if (!Running) throw new InvalidOperationException("Client is not running.");
 
         Connecting = true;
 
@@ -82,6 +85,11 @@ public class Client(INetworkLocalConnectionLayer connectionLayer)
         try
         {
             _socket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+
+            cancellationToken.Register(() =>
+            {
+                Console.WriteLine("Stopped connecting.");
+            });
 
             await _socket.ConnectAsync(endPoint, cancellationToken);
 
@@ -118,35 +126,17 @@ public class Client(INetworkLocalConnectionLayer connectionLayer)
 
     public async Task StopAsync()
     {
-        if (Stopping)
-        {
-            throw new InvalidOperationException("Client is already stopping.");
-        }
+        if (Stopping) throw new InvalidOperationException("Client is already stopping.");
 
-        if (Starting)
-        {
-            throw new InvalidOperationException("Client is still starting.");
-        }
+        if (Starting) throw new InvalidOperationException("Client is still starting.");
 
-        if (!Running)
-        {
-            throw new InvalidOperationException("Client is already stopped.");
-        }
+        if (!Running) throw new InvalidOperationException("Client is already stopped.");
 
-        if (Disconnecting)
-        {
-            throw new InvalidOperationException("Client is still disconnecting.");
-        }
+        if (Disconnecting) throw new InvalidOperationException("Client is still disconnecting.");
 
-        if (Connecting)
-        {
-            throw new InvalidOperationException("Client is still connecting.");
-        }
+        if (Connecting) throw new InvalidOperationException("Client is still connecting.");
 
-        if (Connected)
-        {
-            await DisconnectAsync();
-        }
+        if (Connected) throw new InvalidOperationException("Client is still connected.");
 
         Disconnecting = true;
 

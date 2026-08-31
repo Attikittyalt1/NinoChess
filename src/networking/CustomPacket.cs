@@ -106,8 +106,8 @@ public class CustomPacket
             PacketFormat.LinkID => FromLinkID(BitConverter.ToInt32(data, 1)),
             PacketFormat.AbandonID => AbandonID,
             PacketFormat.Shutdown => Shutdown,
-            PacketFormat.MessageInteger => FromMessage(BitConverter.ToInt32(data, 5)),
-            PacketFormat.MessageString => FromMessage(Encoding.UTF8.GetString(data, 9, BitConverter.ToInt32(data, 5))),
+            PacketFormat.MessageInteger => FromMessage(BitConverter.ToInt32(data, 1)),
+            PacketFormat.MessageString => FromMessage(Encoding.UTF8.GetString(data, 5, BitConverter.ToInt32(data, 1))),
             PacketFormat.MessageObject => throw new NotImplementedException(),
             PacketFormat.Move => BytesToMove(),
             _ => throw new InvalidDataException("Invalid packet format")
@@ -115,9 +115,9 @@ public class CustomPacket
 
         CustomPacket BytesToMove()
         {
-            var turn = BitConverter.ToInt32(data, 5);
-            var origin = new Position(BitConverter.ToInt32(data, 9), BitConverter.ToInt32(data, 13));
-            var target = new Position(BitConverter.ToInt32(data, 17), BitConverter.ToInt32(data, 21));
+            var turn = BitConverter.ToInt32(data, 1);
+            var origin = new Position(BitConverter.ToInt32(data, 5), BitConverter.ToInt32(data, 9));
+            var target = new Position(BitConverter.ToInt32(data, 13), BitConverter.ToInt32(data, 17));
 
             return FromMove(new(origin, target), turn);
         }
@@ -142,10 +142,10 @@ public class CustomPacket
             PacketFormat.LinkID => 5,
             PacketFormat.AbandonID => 1,
             PacketFormat.Shutdown => 1,
-            PacketFormat.MessageInteger => 9,
-            PacketFormat.MessageString => 9,
+            PacketFormat.MessageInteger => 5,
+            PacketFormat.MessageString => 5,
             PacketFormat.MessageObject => throw new NotImplementedException(),
-            PacketFormat.Move => 25,
+            PacketFormat.Move => 21,
             _ => throw new InvalidDataException("Invalid packet format")
         };
 

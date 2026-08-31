@@ -64,7 +64,29 @@ public class ClientConnectionLayer() : GenericConnectionLayer
                     response = Disconnect;
                     break;
                 }
-            default: throw new ArgumentException("Client could not send packet. Format invalid for client.");
+            case PacketFormat.MessageInteger:
+                {
+                    var message = packet.ToMessageInt();
+
+                    Console.WriteLine("Recieved Integer: {0}", message);
+                    SendResult(ReturnCode.Success);
+                    break;
+                }
+            case PacketFormat.MessageString:
+                {
+                    var message = packet.ToMessageInt();
+
+                    Console.WriteLine("Recieved String: {0}", message);
+                    SendResult(ReturnCode.Success);
+                    break;
+                }
+            case PacketFormat.MessageObject:
+                {
+
+                    throw new NotImplementedException();
+                    break;
+                }
+            default: throw new ArgumentException(string.Format("Client could not send packet. Result format invalid for client: {0}", Enum.GetName(packet.Format)));
         }
 
         return (response, disconnect);
@@ -82,6 +104,8 @@ public class ClientConnectionLayer() : GenericConnectionLayer
                 {
                     _active = true;
 
+                    Console.WriteLine("Successfully connected to server.");
+
                     Connected.Set();
                     Disconnected.Reset();
                     break;
@@ -90,6 +114,8 @@ public class ClientConnectionLayer() : GenericConnectionLayer
                 {
                     _active = false;
                     disconnect = true;
+
+                    Console.WriteLine("Successfully disconnected from server.");
 
                     Disconnected.Set();
                     Connected.Reset();
@@ -100,6 +126,9 @@ public class ClientConnectionLayer() : GenericConnectionLayer
                     _registrationID = _possibleRegistrationID;
                     _possibleRegistrationID = null;
 
+
+                    Console.WriteLine("Successfully linked id: {0}", _registrationID);
+
                     Registered.Set();
                     Unregistered.Reset();
                     break;
@@ -108,6 +137,9 @@ public class ClientConnectionLayer() : GenericConnectionLayer
                 {
                     _registrationID = null;
 
+
+                    Console.WriteLine("Successfully abandoned id.");
+
                     Unregistered.Set();
                     Registered.Reset();
                     break;
@@ -115,12 +147,12 @@ public class ClientConnectionLayer() : GenericConnectionLayer
             case PacketFormat.MessageInteger:
                 {
 
-                    Console.WriteLine("Successfully sent integer,");
+                    Console.WriteLine("Successfully sent integer to server.");
                     break;
                 }
             case PacketFormat.MessageString:
                 {
-                    Console.WriteLine("Successfully sent string,");
+                    Console.WriteLine("Successfully sent string to server.");
                     break;
                 }
             case PacketFormat.MessageObject:
@@ -135,7 +167,7 @@ public class ClientConnectionLayer() : GenericConnectionLayer
                     throw new NotImplementedException();
                     break;
                 }
-            default: throw new ArgumentException("Client could not send packet. Result format invalid for client.");
+            default: throw new ArgumentException(string.Format("Client could not send packet. Result format invalid for client: {0}", Enum.GetName(type)));
         }
     }
 }

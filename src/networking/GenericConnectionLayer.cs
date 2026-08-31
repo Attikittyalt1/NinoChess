@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing;
 using System.Threading;
 using System.Threading.Tasks;
 using static NinoChess.Networking.CustomPacket;
@@ -14,6 +15,12 @@ public abstract class GenericConnectionLayer() : INetworkLocalConnectionLayer
 
     public async Task<(byte[]? response, bool disconnect)> OnRecieveDataAsync(byte[] data, int byteCount, int id)
     {
+        /*for (int i = 0; i < byteCount - 1; i++)
+        {
+            Console.Write("{0}, ", data[i]);
+        }
+        Console.WriteLine(data[byteCount - 1]);*/
+
         var packet = FromBytesRaw(data, byteCount);
 
         var (response, disconnect) = await HandleIncomingPacket(packet, id);
@@ -30,13 +37,20 @@ public abstract class GenericConnectionLayer() : INetworkLocalConnectionLayer
         try
         {
             var packet = await Input.Task;
+            var size = packet.GetSize();
 
-            if (packet.GetSize() > MaxBufferSizeFromLocal)
+            if (size > MaxBufferSizeFromLocal)
             {
                 throw new ArgumentException("Packet size is too large to send");
             }
 
             var data = packet.ToBytesRaw();
+
+            /*for (int i = 0; i < size - 1; i++)
+            {
+                Console.Write("{0}, ", data[i]);
+            }
+            Console.WriteLine(data[size - 1]);*/
 
             return (data, GetDestinationOfPacket(packet));
         }
