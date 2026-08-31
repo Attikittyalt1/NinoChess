@@ -1,15 +1,18 @@
 ﻿using NinoChess;
 using NinoChess.Networking;
+using System;
+using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
 
-//var game = new MyGame();
-//game.Run();
+var game = new MyGame(new IPEndPoint(IPAddress.Parse(Console.ReadLine()), 25565));
 
 var app = new NetworkingCommandLineApp();
 
-app.StartConsoleInterface();
-
-/*new Thread(() =>
+_ = Task.Run(() =>
 {
-    
-}).Start();*/
+    app.StartConsoleInterface();
+});
+
+
+game.Run();

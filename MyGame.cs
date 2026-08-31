@@ -5,11 +5,14 @@ using Microsoft.Xna.Framework.Input;
 using NinoChess.Events;
 using NinoChess.Moves;
 using NinoChess.Mutations;
+using NinoChess.Networking;
 using NinoChess.Pieces;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
+using System.Threading.Tasks;
 
 namespace NinoChess;
 public class MyGame : Game
@@ -26,6 +29,9 @@ public class MyGame : Game
 
     private Grid? _grid;
     private TurnManager? _turnManager;
+    private ClientConnectionLayer? _layer;
+    private Client? _client;
+    private readonly IPEndPoint _ep;
 
     private Position _gridOffset => Position.Zero;
     private Position _gridCellSize => Position.Unit * 64;
@@ -41,11 +47,12 @@ public class MyGame : Game
     }
     private DraggingHandler<PieceDraggingData> draggingHandler;
 
-    public MyGame()
+    public MyGame(IPEndPoint ep)
     {
         _graphics = new GraphicsDeviceManager(this);
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
+        _ep = ep;
     }
 
     protected override void Initialize()
@@ -56,6 +63,8 @@ public class MyGame : Game
         var mutationService = new MutationService();
 
         _turnManager = new(boardState, mutationService, eventService);
+        _layer = new(_turnManager);
+        _client = new(_layer);
 
         SetupBoard(boardState, eventService, mutationService);
 
@@ -94,9 +103,12 @@ public class MyGame : Game
 
                 var info = new MoveInfo(data.InitialPiecePosition, pos);
 
-                if (_grid.ContainsPosition(pos) && _turnManager.IsValid(info))
+                if (_grid.ContainsPosition(pos) && _turnManager.IsValid(info) && _layer.UndoBuffer == 0 && _layer.NetworkMoveBuffer.Count == 0)
                 {
                     _turnManager.Do(info);
+                    _layer.LocalMoveBuffer.Enqueue(info);
+
+                    _layer.Input.TrySetResult(CustomPacket.FromTurn(_layer.LocalMoveBuffer.Peek(), _turnManager.Turn - _layer.LocalMoveBuffer.Count));
                     return;
                 }
             }
@@ -107,10 +119,16 @@ public class MyGame : Game
         AddPieces();
         AddMoves();
 
+        Task.Run(async () =>
+        {
+            await _client.StartAsync();
+            await _client.ConnectAsync(_ep);
+        });
+
         base.Initialize();
     }
 
-    private void SetupBoard(BoardStateData boardState, EventService eventService, MutationService mutationService)
+    public static void SetupBoard(BoardStateData boardState, EventService eventService, MutationService mutationService)
     {
         Create(new Pawn { Position = new(0, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
         Create(new Pawn { Position = new(1, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
@@ -148,7 +166,7 @@ public class MyGame : Game
 
         void Create(Piece piece)
         {
-            var sender = this;
+            var sender = boardState;
             var args = new Event_Create
             {
                 MutationService = mutationService,
@@ -157,7 +175,7 @@ public class MyGame : Game
 
             piece.OnCreate(sender, args);
 
-            new Mutation_Create { Board = _grid, Piece = piece}.Execute();
+            new Mutation_Create { Board = boardState.Board, Piece = piece}.Execute();
 
             eventService.Get<Event_Create>()?.Invoke(sender, args);
         }
@@ -229,6 +247,16 @@ public class MyGame : Game
 
     protected override void Update(GameTime gameTime)
     {
+        for (int i = 0; i < _layer.UndoBuffer; i++)
+        {
+            _turnManager.Undo();
+        }
+
+        while (_layer.NetworkMoveBuffer.TryDequeue(out var move))
+        {
+            _turnManager.Do(move);
+        }
+
         UpdateInputs(gameTime);
 
         base.Update(gameTime);

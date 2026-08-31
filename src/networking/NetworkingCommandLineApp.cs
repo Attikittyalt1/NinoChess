@@ -26,7 +26,16 @@ public class NetworkingCommandLineApp
 
     public NetworkingCommandLineApp()
     {
-        _server.layer = new();
+        var grid = new Grid(8);
+        var boardState = new BoardStateData(grid);
+        var eventService = new EventService();
+        var mutationService = new MutationService();
+
+        var turnManager = new TurnManager(boardState, mutationService, eventService);
+
+        MyGame.SetupBoard(boardState, eventService, mutationService);
+
+        _server.layer = new(turnManager);
         _server.core = new(_server.layer);
     }
 
@@ -149,7 +158,16 @@ public class NetworkingCommandLineApp
         {
             var name = parseResult.GetRequiredValue(clientName);
 
-            var layer = new ClientConnectionLayer();
+            var grid = new Grid(8);
+            var boardState = new BoardStateData(grid);
+            var eventService = new EventService();
+            var mutationService = new MutationService();
+
+            var turnManager = new TurnManager(boardState, mutationService, eventService);
+
+            MyGame.SetupBoard(boardState, eventService, mutationService);
+
+            var layer = new ClientConnectionLayer(turnManager);
             var core = new Client(layer);
             layer.Disconnected += (sender, args) =>
             {
@@ -485,7 +503,5 @@ public class NetworkingCommandLineApp
             var result = rootCommand.Parse(input);
             result.Invoke();
         }
-
-        var a = new ClientConnectionLayer();
     }
 }

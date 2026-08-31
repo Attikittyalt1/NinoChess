@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using static NinoChess.Networking.CustomPacket;
 
 namespace NinoChess.Networking;
 
-public class ServerConnectionLayer() : GenericConnectionLayer
+public class ServerConnectionLayer(TurnManager turnManager) : GenericConnectionLayer
 {
     private readonly Dictionary<int, int> _idRegistry = [];
     private readonly Dictionary<int, int> _idsBeingAssigned = [];
@@ -48,7 +49,7 @@ public class ServerConnectionLayer() : GenericConnectionLayer
                 {
                     if (!_activeClients.TryAdd(id, null))
                     {
-                        SendResult(ReturnCode.Failure);
+                        SendResult(ReturnCode.FailureA);
                         break;
                     }
 
@@ -61,7 +62,7 @@ public class ServerConnectionLayer() : GenericConnectionLayer
                 {
                     if (!_activeClients.Remove(id))
                     {
-                        SendResult(ReturnCode.Failure);
+                        SendResult(ReturnCode.FailureA);
                         break;
                     }
 
@@ -75,7 +76,7 @@ public class ServerConnectionLayer() : GenericConnectionLayer
                 {
                     if (!_activeClients.TryGetValue(id, out var previousAssignedID) || previousAssignedID != null)
                     {
-                        SendResult(ReturnCode.Failure);
+                        SendResult(ReturnCode.FailureA);
                         break;
                     }
 
@@ -83,7 +84,7 @@ public class ServerConnectionLayer() : GenericConnectionLayer
 
                     if (!_idsBeingAssigned.TryAdd(id, newAssignedID))
                     {
-                        SendResult(ReturnCode.Failure);
+                        SendResult(ReturnCode.FailureB);
                         break;
                     }
 
@@ -111,7 +112,7 @@ public class ServerConnectionLayer() : GenericConnectionLayer
 
                     if (_idsBeingAssigned.TryGetValue(id, out var listedAssignedID) || listedAssignedID != assignedID)
                     {
-                        SendResult(ReturnCode.Failure);
+                        SendResult(ReturnCode.FailureA);
                         break;
                     }
 
@@ -126,7 +127,7 @@ public class ServerConnectionLayer() : GenericConnectionLayer
                 {
                     if (!_activeClients.TryGetValue(id, out var assignedID) || assignedID == null)
                     {
-                        SendResult(ReturnCode.Failure);
+                        SendResult(ReturnCode.FailureA);
                         break;
                     }
 
@@ -158,10 +159,29 @@ public class ServerConnectionLayer() : GenericConnectionLayer
                     throw new NotImplementedException();
                     break;
                 }
-            case PacketFormat.Move:
+            case PacketFormat.Turn:
                 {
+                    var (move, turnCount) = packet.ToTurn();
 
-                    throw new NotImplementedException();
+                    if (turnCount != turnManager.Turn)
+                    {
+                        Debug.WriteLine("comparison: {0}, {1}", turnCount, turnManager.Turn);
+                        SendResult(ReturnCode.FailureA);
+                        break;
+                    }
+
+                    if (!turnManager.IsValid(move))
+                    {
+                        Debug.WriteLine("inveelid move");
+                        SendResult(ReturnCode.FailureB);
+                        break;
+                    }
+
+                    turnManager.Do(move);
+
+                    Input.SetResult(packet);
+
+                    SendResult(ReturnCode.Success);
                     break;
                 }
             default: throw new ArgumentException(string.Format("Server could not send packet. Result format invalid for server: {0}", Enum.GetName(packet.Format)));
@@ -193,6 +213,11 @@ public class ServerConnectionLayer() : GenericConnectionLayer
                 {
 
                     throw new NotImplementedException();
+                    break;
+                }
+            case PacketFormat.Turn:
+                {
+                    Console.WriteLine("Successfully sent turn to client.");
                     break;
                 }
             default: throw new ArgumentException(string.Format("Server could not send packet. Result format invalid for server: {0}", Enum.GetName(type)));

@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using static NinoChess.Networking.CustomPacket;
 
 namespace NinoChess.Networking;
 
-public class ClientConnectionLayer() : GenericConnectionLayer
+public class ClientConnectionLayer(TurnManager turnManager) : GenericConnectionLayer
 {
     public event EventHandler? Connected;
 
@@ -14,6 +15,10 @@ public class ClientConnectionLayer() : GenericConnectionLayer
     public event EventHandler? Unregistered;
 
     public event EventHandler? Disconnected;
+
+    public readonly Queue<MoveInfo> NetworkMoveBuffer = [];
+    public readonly Queue<MoveInfo> LocalMoveBuffer = [];
+    public int UndoBuffer = 0;
 
     private int? _registrationID = null;
     private int? _possibleRegistrationID = null;
@@ -44,7 +49,7 @@ public class ClientConnectionLayer() : GenericConnectionLayer
                 {
                     if (!_active || _registrationID != null)
                     {
-                        SendResult(ReturnCode.Failure);
+                        SendResult(ReturnCode.FailureA);
                         break;
                     }
 
@@ -57,7 +62,7 @@ public class ClientConnectionLayer() : GenericConnectionLayer
                 {
                     if (!_active)
                     {
-                        SendResult(ReturnCode.Failure);
+                        SendResult(ReturnCode.FailureA);
                         break;
                     }
 
@@ -84,6 +89,38 @@ public class ClientConnectionLayer() : GenericConnectionLayer
                 {
 
                     throw new NotImplementedException();
+                    break;
+                }
+            case PacketFormat.Turn:
+                {
+                    var (move, turnCount) = packet.ToTurn();
+
+                    var theirTurnRelative = turnCount - NetworkMoveBuffer.Count;
+                    var myTurnRelative = turnManager.Turn - LocalMoveBuffer.Count;
+
+                    if (theirTurnRelative != myTurnRelative)
+                    {
+                        Console.WriteLine("Turn count mismatch: Client ({0}) should be the same as Server ({1})", myTurnRelative, theirTurnRelative);
+                        SendResult(ReturnCode.FailureA);
+                        break;
+                    }
+
+                    if (LocalMoveBuffer.TryDequeue(out var myMove))
+                    {
+                        if (myMove == move)
+                        {
+                            SendResult(ReturnCode.Success);
+                            break;
+                        }
+
+                        UndoBuffer += LocalMoveBuffer.Count + 1;
+
+                        LocalMoveBuffer.Clear();
+                    }
+
+                    NetworkMoveBuffer.Enqueue(move);
+
+                    SendResult(ReturnCode.Success);
                     break;
                 }
             default: throw new ArgumentException(string.Format("Client could not send packet. Result format invalid for client: {0}", Enum.GetName(packet.Format)));
@@ -157,10 +194,9 @@ public class ClientConnectionLayer() : GenericConnectionLayer
                     throw new NotImplementedException();
                     break;
                 }
-            case PacketFormat.Move:
+            case PacketFormat.Turn:
                 {
-
-                    throw new NotImplementedException();
+                    Console.WriteLine("Successfully sent move to server.");
                     break;
                 }
             default: throw new ArgumentException(string.Format("Client could not send packet. Result format invalid for client: {0}", Enum.GetName(type)));

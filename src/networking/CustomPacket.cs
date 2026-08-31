@@ -20,13 +20,18 @@ public class CustomPacket
         MessageInteger = 9,
         MessageString = 10,
         MessageObject = 11,
-        Move = 12,
+        Turn = 12,
     }
 
     public enum ReturnCode : byte
     {
         Failure = 0,
-        Success = 1
+        Success = 1,
+        FailureA = 2,
+        FailureB = 3,
+        FailureC = 4,
+        FailureD = 5,
+        FailureE = 6
     }
 
     public PacketFormat Format { get; private init; } = PacketFormat.Invalid;
@@ -45,7 +50,7 @@ public class CustomPacket
         PacketFormat.MessageInteger => 5,
         PacketFormat.MessageString => 5 + Encoding.UTF8.GetByteCount((string) Data),
         PacketFormat.MessageObject => throw new NotImplementedException(),
-        PacketFormat.Move => 21,
+        PacketFormat.Turn => 21,
         _ => throw new InvalidDataException("Invalid packet format")
     };
     
@@ -64,7 +69,7 @@ public class CustomPacket
             PacketFormat.MessageInteger => [..BitConverter.GetBytes((int)Data)],
             PacketFormat.MessageString => [..BitConverter.GetBytes((int)Data), ..Encoding.UTF8.GetBytes((string)Data)],
             PacketFormat.MessageObject => throw new NotImplementedException(),
-            PacketFormat.Move => MoveToBytes(),
+            PacketFormat.Turn => MoveToBytes(),
         _ => throw new InvalidDataException("Invalid packet format")
         }];
 
@@ -109,7 +114,7 @@ public class CustomPacket
             PacketFormat.MessageInteger => FromMessage(BitConverter.ToInt32(data, 1)),
             PacketFormat.MessageString => FromMessage(Encoding.UTF8.GetString(data, 5, BitConverter.ToInt32(data, 1))),
             PacketFormat.MessageObject => throw new NotImplementedException(),
-            PacketFormat.Move => BytesToMove(),
+            PacketFormat.Turn => BytesToMove(),
             _ => throw new InvalidDataException("Invalid packet format")
         });
 
@@ -119,7 +124,7 @@ public class CustomPacket
             var origin = new Position(BitConverter.ToInt32(data, 5), BitConverter.ToInt32(data, 9));
             var target = new Position(BitConverter.ToInt32(data, 13), BitConverter.ToInt32(data, 17));
 
-            return FromMove(new(origin, target), turn);
+            return FromTurn(new(origin, target), turn);
         }
     }
 
@@ -145,7 +150,7 @@ public class CustomPacket
             PacketFormat.MessageInteger => 5,
             PacketFormat.MessageString => 5,
             PacketFormat.MessageObject => throw new NotImplementedException(),
-            PacketFormat.Move => 21,
+            PacketFormat.Turn => 21,
             _ => throw new InvalidDataException("Invalid packet format")
         };
 
@@ -179,7 +184,7 @@ public class CustomPacket
     public static CustomPacket FromMessage(int message) => new() { Format = PacketFormat.MessageInteger, Data = message };
     public static CustomPacket FromMessage(string message) => new() { Format = PacketFormat.MessageString, Data = message };
     public static CustomPacket FromMessage(object o) => new() { Format = PacketFormat.MessageObject, Data = o };
-    public static CustomPacket FromMove(MoveInfo info, int turn) => new() { Format = PacketFormat.Move, Data = (info, turn) };
+    public static CustomPacket FromTurn(MoveInfo move, int turnCount) => new() { Format = PacketFormat.Turn, Data = (move, turnCount) };
 
     public (PacketFormat type, ReturnCode code) ToResultWithoutData() => ((PacketFormat type, ReturnCode code))ThrowIfNotFormat(PacketFormat.ResultWithoutData).Data;
     public int ToAssignID() => (int)ThrowIfNotFormat(PacketFormat.AssignID).Data;
@@ -187,7 +192,7 @@ public class CustomPacket
     public int ToMessageInt() => (int)ThrowIfNotFormat(PacketFormat.MessageInteger).Data;
     public string ToMessageString() => (string)ThrowIfNotFormat(PacketFormat.MessageString).Data;
     public object ToMessageObject() => ThrowIfNotFormat(PacketFormat.MessageObject).Data;
-    public (MoveInfo info, int turn) ToMove() => ((MoveInfo info, int turn))ThrowIfNotFormat(PacketFormat.Move).Data;
+    public (MoveInfo info, int turnCount) ToTurn() => ((MoveInfo info, int turnCount))ThrowIfNotFormat(PacketFormat.Turn).Data;
 
     private CustomPacket ThrowIfNotFormat(PacketFormat format)
     {
