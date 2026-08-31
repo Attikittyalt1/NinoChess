@@ -11,27 +11,69 @@ using System.Threading.Tasks;
 
 namespace NinoChess.Networking;
 
-public class Client(INetworkLocalInterface gameInterface)
+public class Client(INetworkLocalConnectionLayer connectionLayer)
 {
+    public bool Running { get; private set; } = false;
+    public bool Starting { get; private set; } = false;
+    public bool Stopping { get; private set; } = false;
     public bool Connected { get; private set; } = false;
     public bool Connecting { get; private set; } = false;
     public bool Disconnecting { get; private set; } = false;
 
-    private Socket _socket;
-    private CancellationTokenSource? _cancellationTokenSource;
-    private Task? _tasksEnded;
+    private readonly NetworkLocalSocketManager _manager = new (connectionLayer);
+
+    private Socket? _socket;
+    private CancellationTokenSource? _cancelLocal;
+    private CancellationTokenSource? _cancelSocket;
+    private Task? _endedLocal;
+    private Task? _endedSocket;
+
+    public async Task StartAsync(CancellationToken cancellationToken = default)
+    {
+        if (Starting) throw new InvalidOperationException("Client is already starting.");
+
+        if (Stopping) throw new InvalidOperationException("Client is still stopping.");
+
+        if (Running) throw new InvalidOperationException("Client is already running.");
+
+        Starting = true;
+
+        Console.WriteLine("Starting client.");
+
+        try
+        {
+            _cancelLocal = new CancellationTokenSource();
+
+            var startedLocal = new TaskCompletionSource();
+            var endedLocal = new TaskCompletionSource();
+
+            _endedLocal = endedLocal.Task;
+
+            _ = Task.Run(() => _manager.StartWatchingLocal(startedLocal, endedLocal, _cancelLocal.Token), _cancelLocal.Token);
+
+            await startedLocal.Task;
+
+            Running = true;
+
+            Console.WriteLine("Started client.");
+        } 
+        finally
+        {
+            Starting = false;
+        }
+    }
 
     public async Task ConnectAsync(IPEndPoint endPoint, CancellationToken cancellationToken = default)
     {
-        if (Connected == true)
-        {
-            throw new InvalidOperationException("Client is already connected.");
-        }
+        if (Starting) throw new InvalidOperationException("Client is still starting.");
 
-        if (Connecting == true)
-        {
-            throw new InvalidOperationException("Client is already connecting.");
-        }
+        if (!Running) throw new InvalidOperationException("Client is not running.");
+
+        if (Stopping) throw new InvalidOperationException("Client is stopping.");
+
+        if (Connected) throw new InvalidOperationException("Client is already connected.");
+
+        if (Connecting) throw new InvalidOperationException("Client is already connecting.");
 
         Connecting = true;
 
@@ -43,29 +85,30 @@ public class Client(INetworkLocalInterface gameInterface)
 
             await _socket.ConnectAsync(endPoint, cancellationToken);
 
-            _cancellationTokenSource = new CancellationTokenSource();
+            _cancelSocket = new CancellationTokenSource();
 
-            var manager = new NetworkLocalSocketManager(gameInterface);
-
-            var startedLocal = new TaskCompletionSource();
             var startedSocket = new TaskCompletionSource();
-            var endedLocal = new TaskCompletionSource();
             var endedSocket = new TaskCompletionSource();
-            _tasksEnded = Task.WhenAll(endedLocal.Task, endedSocket.Task);
 
-            _ = Task.Run(() => manager.StartWatchingLocal(startedLocal, endedLocal, _cancellationTokenSource.Token), _cancellationTokenSource.Token);
-            _ = Task.Run(() => manager.StartWatchingSocket(_socket, startedSocket, endedSocket, _cancellationTokenSource.Token), _cancellationTokenSource.Token);
+            _endedSocket = endedSocket.Task;
 
-            await Task.WhenAll(startedLocal.Task, startedSocket.Task);
+            _ = Task.Run(() => _manager.StartWatchingSocket(_socket, startedSocket, endedSocket, _cancelSocket.Token), _cancelSocket.Token);
+
+            await startedSocket.Task;
 
             Connected = true;
 
             Console.WriteLine("Connected client.");
-        } 
+        }
         finally
         {
             Connecting = false;
         }
+    }
+
+    public void Start()
+    {
+        StartAsync().Wait();
     }
 
     public void Connect(IPEndPoint endPoint)
@@ -73,16 +116,36 @@ public class Client(INetworkLocalInterface gameInterface)
         ConnectAsync(endPoint).Wait();
     }
 
-    public async Task DisconnectAsync()
+    public async Task StopAsync()
     {
-        if (Connected == false)
+        if (Stopping)
         {
-            throw new InvalidOperationException("Client is already disconnected.");
+            throw new InvalidOperationException("Client is already stopping.");
         }
 
-        if (Disconnecting == true)
+        if (Starting)
         {
-            throw new InvalidOperationException("Client is already disconnecting.");
+            throw new InvalidOperationException("Client is still starting.");
+        }
+
+        if (!Running)
+        {
+            throw new InvalidOperationException("Client is already stopped.");
+        }
+
+        if (Disconnecting)
+        {
+            throw new InvalidOperationException("Client is still disconnecting.");
+        }
+
+        if (Connecting)
+        {
+            throw new InvalidOperationException("Client is still connecting.");
+        }
+
+        if (Connected)
+        {
+            await DisconnectAsync();
         }
 
         Disconnecting = true;
@@ -91,18 +154,51 @@ public class Client(INetworkLocalInterface gameInterface)
 
         try
         {
-            if (!_cancellationTokenSource.IsCancellationRequested)
+            if (!_cancelLocal.IsCancellationRequested)
             {
-                _cancellationTokenSource.Cancel();
+                _cancelLocal.Cancel();
             }
 
-            await _tasksEnded;
+            await _endedLocal;
+
+            _cancelLocal = null;
+            _endedLocal = null;
+            Running = false;
+
+            Console.WriteLine("Disconnected client.");
+        }
+        finally
+        {
+            Stopping = false;
+        }
+    }
+
+    public async Task DisconnectAsync()
+    {
+        if (Disconnecting) throw new InvalidOperationException("Client is already disconnecting.");
+
+        if (Connecting) throw new InvalidOperationException("Client is still connecting.");
+
+        if (!Connected) throw new InvalidOperationException("Client is already disconnected.");
+
+        Disconnecting = true;
+
+        Console.WriteLine("Disconecting client.");
+
+        try
+        {
+            if (!_cancelSocket.IsCancellationRequested)
+            {
+                _cancelSocket.Cancel();
+            }
+
+            await _endedSocket;
 
             await _socket.DisconnectAsync(false);
 
             _socket = null;
-            _cancellationTokenSource = null;
-            _tasksEnded = null;
+            _cancelSocket = null;
+            _endedSocket = null;
             Connected = false;
 
             Console.WriteLine("Disconnected client.");
@@ -111,6 +207,11 @@ public class Client(INetworkLocalInterface gameInterface)
         {
             Disconnecting = false;
         }
+    }
+
+    public void Stop()
+    {
+        StopAsync().Wait();
     }
 
     public void Disconnect()

@@ -11,12 +11,13 @@ using System.Threading.Tasks;
 
 namespace NinoChess.Networking;
 
-public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterface)
+public class NetworkLocalSocketManager(INetworkLocalConnectionLayer connectionLayer)
 {
+    public bool HasConnectedSockets => _sockets.Count > 0;
+
     private readonly Dictionary<int, Socket> _sockets = [];
     private bool _watchingLocal = false;
     private bool _listening = false;
-    public bool HasConnectedSockets => _sockets.Count > 0;
 
     public void StartWatchingLocal(TaskCompletionSource started, TaskCompletionSource ended, CancellationToken cancellationToken)
     {
@@ -52,9 +53,9 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
         {
             _watchingLocal = false;
             Console.WriteLine("Stopped watching local");
-        }
 
-        ended.SetResult();
+            ended.SetResult();
+        }
     }
 
     public void StartWatchingSocket(Socket socket, TaskCompletionSource started, TaskCompletionSource ended, CancellationToken cancellationToken)
@@ -98,9 +99,9 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
         {
             _sockets.Remove(id);
             Console.WriteLine("Stopped watching socket");
-        }
 
-        ended.SetResult();
+            ended.SetResult();
+        }
     }
 
     public void StartListeningSocket(Socket socket, TaskCompletionSource started, TaskCompletionSource endedListening, TaskCompletionSource endedSockets, CancellationToken cancellationToken)
@@ -144,9 +145,9 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
         {
             _listening = false;
             Console.WriteLine("Stopped listening to socket");
-        }
 
-        endedListening.SetResult();
+            endedListening.SetResult();
+        }
     }
 
     private async Task CheckNewConnection(Socket socket, TaskCompletionSource startedSocket, TaskCompletionSource endedSocket, CancellationToken cancellationToken)
@@ -161,7 +162,7 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
 
     private async Task<bool> CheckRecieveDataFromSocket(Socket socket, int id, CancellationToken cancellationToken)
     {
-        var buffer = new byte[networkGameInterface.MaxBufferSizeFromNetwork];
+        var buffer = new byte[connectionLayer.MaxBufferSizeFromNetwork];
 
         var received = await socket.ReceiveAsync(buffer, SocketFlags.None, cancellationToken);
 
@@ -169,15 +170,13 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
 
         Console.WriteLine("Received data from socket with id: " + id);
 
-        var responseTask = new TaskCompletionSource<byte[]>();
-        var (respond, disconnect) = await networkGameInterface.OnRecieveDataAsync(buffer, received, id, responseTask);
+        var (response, disconnect) = await connectionLayer.OnRecieveDataAsync(buffer, received, id);
 
-        if (respond)
+        if (response is not null)
         {
             Console.WriteLine("Sending response");
-            var data = await responseTask.Task;
 
-            await SendDataToSocket(data, socket);
+            await SendDataToSocket(response, socket);
         }
         else
         {
@@ -189,7 +188,7 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
 
     public async Task CheckRecieveDataFromLocal(CancellationToken cancellationToken)
     {
-        var (data, id) = await networkGameInterface.GetDataToSendAsync(cancellationToken);
+        var (data, id) = await connectionLayer.GetDataToSendAsync(cancellationToken);
 
         if (id.HasValue)
         {
@@ -216,6 +215,7 @@ public class NetworkLocalSocketManager(INetworkLocalInterface networkGameInterfa
 
     private async Task SendDataToSocket(byte[] data, Socket socket)
     {
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(data.Length, connectionLayer.MaxBufferSizeFromLocal);
         await socket.SendAsync(data);
     }
 }

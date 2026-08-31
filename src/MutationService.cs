@@ -46,6 +46,9 @@ public class MutationService()
         _redoStack.Push(_inverseBoardMutations);
         _inverseBoardMutations = [];
     }
+
+    public bool CanUndo() => _undoStack.Count > 0;
+
     public void Redo()
     {
         if (_redoStack.Count == 0)
@@ -61,4 +64,6 @@ public class MutationService()
         _undoStack.Push(_inverseBoardMutations);
         _inverseBoardMutations = [];
     }
+
+    public bool CanRedo() => _redoStack.Count > 0;
 }

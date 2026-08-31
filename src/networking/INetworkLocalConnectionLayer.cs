@@ -11,11 +11,11 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace NinoChess.Networking;
 
-public interface INetworkLocalInterface
+public interface INetworkLocalConnectionLayer
 {
     public int MaxBufferSizeFromNetwork { get; }
     public int MaxBufferSizeFromLocal { get; }
 
-    public Task<(bool respond, bool disconnect)> OnRecieveDataAsync(byte[] data, int byteCount, int id, TaskCompletionSource<byte[]> response);
+    public Task<(byte[]? response, bool disconnect)> OnRecieveDataAsync(byte[] data, int byteCount, int id);
     public Task<(byte[] data, int? id)> GetDataToSendAsync(CancellationToken cancellationToken);
 }

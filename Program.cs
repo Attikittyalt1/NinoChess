@@ -1,12 +1,5 @@
-﻿using NinoChess.Networking;
-
-var test = new TestNetworking();
-
-test.CreateServer();
-
-test.CreateClient();
-
-test.StartConsoleInterface();
+﻿using NinoChess;
+using NinoChess.Networking;
 
 //var game = new MyGame();
 //game.Run();

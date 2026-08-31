@@ -7,11 +7,10 @@ using System.Threading.Tasks;
 
 namespace NinoChess.Networking;
 
-public class TestNetworkLocalInterface() : INetworkLocalInterface
+public class TestNetworkLocalInterface() : INetworkLocalConnectionLayer
 {
 
     public int MaxBufferSizeFromNetwork => 4;
-
     public int MaxBufferSizeFromLocal => 4;
 
     private readonly byte[] data = new byte[4];
@@ -20,7 +19,7 @@ public class TestNetworkLocalInterface() : INetworkLocalInterface
 
     public ManualResetEvent DataUpdated { get; private set; } = new(false);
 
-    public async Task<(bool respond, bool disconnect)> OnRecieveDataAsync(byte[] data, int byteCount, int id, TaskCompletionSource<byte[]> response)
+    public async Task<(byte[]? response, bool disconnect)> OnRecieveDataAsync(byte[] data, int byteCount, int id)
     {
         var update = false;
 
@@ -42,22 +41,21 @@ public class TestNetworkLocalInterface() : INetworkLocalInterface
             case -1:
                 {
                     Debug.WriteLine("Recieved -1");
-                    return (false, false);
+                    return (null, false);
                 }
             case -2:
                 {
                     Debug.WriteLine("Recieved -2");
-                    response.SetResult(BitConverter.GetBytes(-3));
-                    return (true, true);
+                    return (BitConverter.GetBytes(-3), true);
                 }
             case -3:
                 {
                     Debug.WriteLine("Recieved -3");
-                    return (false, false);
+                    return (null, false);
                 }
             default:
                 {
-                    return (false, false);
+                    return (null, false);
                 }
         }
     }

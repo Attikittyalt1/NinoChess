@@ -11,6 +11,23 @@ public class BoardStateData(IBoard board)
 {
     public IBoard Board => board;
 
+    public int PlayerCount
+    {
+        get;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(value, 1);
+
+            field = value;
+        }
+    } = 2;
+
+    public int Turn { get; set; } = 0;
+
+    public int CurrentPlayer => Turn % PlayerCount;
+
+    public Allegience CurrentAllegience => (Allegience)(CurrentPlayer + 1);
+
     public bool IsValidMove(MoveInfo moveInfo)
     {
         return board.GetPieceAt(moveInfo.Origin).HasValidMoveAt(moveInfo.Target);

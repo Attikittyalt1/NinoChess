@@ -8,12 +8,14 @@ namespace NinoChess;
 
 public class TurnManager(BoardStateData boardState, MutationService mutationService, EventService eventService)
 {
+    public int Turn => boardState.Turn;
+    public int PlayerCount 
+    { 
+        get => boardState.PlayerCount; 
+        set => boardState.PlayerCount = value;
+    }
 
-    public int PlayerCount { get; init; } = 2;
-
-    public int Turn { get; private set; } = 0;
-
-    public Allegience CurrentAllegience => (Allegience) (Turn % PlayerCount + 1);
+    public int CurrentPlayer => boardState.CurrentPlayer;
 
     public void Do(MoveInfo moveInfo)
     {
@@ -21,31 +23,33 @@ public class TurnManager(BoardStateData boardState, MutationService mutationServ
 
         mutationService.Finish();
 
-        Turn++;
+        boardState.Turn++;
     }
 
     public void Undo()
     {
         mutationService.Undo();
 
-        Turn--;
+        boardState.Turn--;
     }
 
+    public bool CanUndo() => mutationService.CanUndo();
 
     public void Redo()
     {
         mutationService.Redo();
 
-        Turn++;
+        boardState.Turn++;
     }
+
+    public bool CanRedo() => mutationService.CanRedo();
 
     public bool IsValid(MoveInfo info) => 
           boardState.Board.TryGetPieceAt(info.Origin, out var piece)
-        && piece.Allegience == CurrentAllegience
+        && piece.Allegience == boardState.CurrentAllegience
         && boardState.IsValidMove(info);
 
     public IEnumerable<Move> GetValidMovesFrom(Position origin) => boardState.GetValidMovesFrom(origin);
 
     public IEnumerable<Move> GetValidMovesTo(Position target) => boardState.GetValidMovesTo(target);
-
 }

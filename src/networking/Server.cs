@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace NinoChess.Networking;
 
-public class Server(INetworkLocalInterface gameInterface)
+public class Server(INetworkLocalConnectionLayer connectionLayer)
 {
     public bool Running { get; private set; } = false;
     public bool Starting { get; private set; } = false;
@@ -46,7 +46,7 @@ public class Server(INetworkLocalInterface gameInterface)
 
             _cancellationTokenSource = new CancellationTokenSource();
 
-            _manager = new NetworkLocalSocketManager(gameInterface);
+            _manager = new NetworkLocalSocketManager(connectionLayer);
 
             var startedLocal = new TaskCompletionSource();
             var startedListener = new TaskCompletionSource();
