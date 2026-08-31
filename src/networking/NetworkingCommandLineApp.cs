@@ -34,7 +34,6 @@ public class NetworkingCommandLineApp
     {
         bool stop = false;
 
-
         #region server
 
         #region server start
@@ -152,6 +151,10 @@ public class NetworkingCommandLineApp
 
             var layer = new ClientConnectionLayer();
             var core = new Client(layer);
+            layer.Disconnected += (sender, args) =>
+            {
+                core.Disconnect();
+            };
 
             if (!_clients.TryAdd(name, (core, layer, null)))
             {
@@ -379,8 +382,6 @@ public class NetworkingCommandLineApp
             {
 
                 data.layer.Input.SetResult(CustomPacket.Disconnect);
-                data.layer.Disconnected.WaitOne();
-                data.core.Disconnect();
             });
         });
 
@@ -484,5 +485,7 @@ public class NetworkingCommandLineApp
             var result = rootCommand.Parse(input);
             result.Invoke();
         }
+
+        var a = new ClientConnectionLayer();
     }
 }

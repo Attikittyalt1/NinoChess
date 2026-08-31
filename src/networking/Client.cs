@@ -24,9 +24,7 @@ public class Client(INetworkLocalConnectionLayer connectionLayer)
 
     private Socket? _socket;
     private CancellationTokenSource? _cancelLocal;
-    private CancellationTokenSource? _cancelSocket;
     private Task? _endedLocal;
-    private Task? _endedSocket;
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
@@ -93,14 +91,10 @@ public class Client(INetworkLocalConnectionLayer connectionLayer)
 
             await _socket.ConnectAsync(endPoint, cancellationToken);
 
-            _cancelSocket = new CancellationTokenSource();
-
             var startedSocket = new TaskCompletionSource();
             var endedSocket = new TaskCompletionSource();
 
-            _endedSocket = endedSocket.Task;
-
-            _ = Task.Run(() => _manager.StartWatchingSocket(_socket, startedSocket, endedSocket, _cancelSocket.Token), _cancelSocket.Token);
+            _ = Task.Run(() => _manager.StartWatchingSocket(_socket, startedSocket, endedSocket));
 
             await startedSocket.Task;
 
@@ -173,22 +167,13 @@ public class Client(INetworkLocalConnectionLayer connectionLayer)
 
         Disconnecting = true;
 
-        Console.WriteLine("Disconecting client.");
+        Console.WriteLine("Disconnecting client.");
 
         try
         {
-            if (!_cancelSocket.IsCancellationRequested)
-            {
-                _cancelSocket.Cancel();
-            }
-
-            await _endedSocket;
-
             await _socket.DisconnectAsync(false);
 
             _socket = null;
-            _cancelSocket = null;
-            _endedSocket = null;
             Connected = false;
 
             Console.WriteLine("Disconnected client.");

@@ -7,13 +7,13 @@ namespace NinoChess.Networking;
 
 public class ClientConnectionLayer() : GenericConnectionLayer
 {
-    public ManualResetEvent Connected { get; private set; } = new(false);
+    public event EventHandler? Connected;
 
-    public ManualResetEvent Registered { get; private set; } = new(false);
+    public event EventHandler? Registered;
 
-    public ManualResetEvent Unregistered { get; private set; } = new(false);
+    public event EventHandler? Unregistered;
 
-    public ManualResetEvent Disconnected { get; private set; } = new(false);
+    public event EventHandler? Disconnected;
 
     private int? _registrationID = null;
     private int? _possibleRegistrationID = null;
@@ -106,8 +106,7 @@ public class ClientConnectionLayer() : GenericConnectionLayer
 
                     Console.WriteLine("Successfully connected to server.");
 
-                    Connected.Set();
-                    Disconnected.Reset();
+                    Connected?.Invoke(this, EventArgs.Empty);
                     break;
                 }
             case PacketFormat.Disconnect:
@@ -117,8 +116,7 @@ public class ClientConnectionLayer() : GenericConnectionLayer
 
                     Console.WriteLine("Successfully disconnected from server.");
 
-                    Disconnected.Set();
-                    Connected.Reset();
+                    Disconnected?.Invoke(this, EventArgs.Empty);
                     break;
                 }
             case PacketFormat.LinkID:
@@ -129,8 +127,7 @@ public class ClientConnectionLayer() : GenericConnectionLayer
 
                     Console.WriteLine("Successfully linked id: {0}", _registrationID);
 
-                    Registered.Set();
-                    Unregistered.Reset();
+                    Registered?.Invoke(this, EventArgs.Empty);
                     break;
                 }
             case PacketFormat.AbandonID:
@@ -140,8 +137,7 @@ public class ClientConnectionLayer() : GenericConnectionLayer
 
                     Console.WriteLine("Successfully abandoned id.");
 
-                    Unregistered.Set();
-                    Registered.Reset();
+                    Unregistered?.Invoke(this, EventArgs.Empty);
                     break;
                 }
             case PacketFormat.MessageInteger:

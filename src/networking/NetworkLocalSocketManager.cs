@@ -19,7 +19,7 @@ public class NetworkLocalSocketManager(INetworkLocalConnectionLayer connectionLa
     private bool _watchingLocal = false;
     private bool _listening = false;
 
-    public void StartWatchingLocal(TaskCompletionSource started, TaskCompletionSource ended, CancellationToken cancellationToken)
+    public void StartWatchingLocal(TaskCompletionSource started, TaskCompletionSource ended, CancellationToken cancellationToken = default)
     {
         if (_watchingLocal)
         {
@@ -33,7 +33,7 @@ public class NetworkLocalSocketManager(INetworkLocalConnectionLayer connectionLa
 
         try
         {
-            while (true)
+            while (!cancellationToken.IsCancellationRequested)
             {
                 CheckRecieveDataFromLocal(cancellationToken).Wait();
             }
@@ -58,7 +58,7 @@ public class NetworkLocalSocketManager(INetworkLocalConnectionLayer connectionLa
         }
     }
 
-    public void StartWatchingSocket(Socket socket, TaskCompletionSource started, TaskCompletionSource ended, CancellationToken cancellationToken)
+    public void StartWatchingSocket(Socket socket, TaskCompletionSource started, TaskCompletionSource ended, CancellationToken cancellationToken = default)
     {
         if (_sockets.ContainsValue(socket))
         {
@@ -76,7 +76,7 @@ public class NetworkLocalSocketManager(INetworkLocalConnectionLayer connectionLa
 
         try
         {
-            while (socket.Connected)
+            while (socket.Connected && !cancellationToken.IsCancellationRequested)
             {
                 if (CheckRecieveDataFromSocket(socket, id, cancellationToken).Result)
                 {
@@ -86,7 +86,7 @@ public class NetworkLocalSocketManager(INetworkLocalConnectionLayer connectionLa
         }
         catch (OperationCanceledException e)
         {
-
+            
         }
         catch (AggregateException ae)
         {
@@ -94,6 +94,7 @@ public class NetworkLocalSocketManager(INetworkLocalConnectionLayer connectionLa
             {
                 return ex is OperationCanceledException;
             });
+            
         }
         finally
         {
@@ -104,7 +105,7 @@ public class NetworkLocalSocketManager(INetworkLocalConnectionLayer connectionLa
         }
     }
 
-    public void StartListeningSocket(Socket socket, TaskCompletionSource started, TaskCompletionSource endedListening, TaskCompletionSource endedSockets, CancellationToken cancellationToken)
+    public void StartListeningSocket(Socket socket, TaskCompletionSource started, TaskCompletionSource endedListening, TaskCompletionSource endedSockets, CancellationToken cancellationToken = default)
     {
         if (_listening)
         {
@@ -121,7 +122,7 @@ public class NetworkLocalSocketManager(INetworkLocalConnectionLayer connectionLa
 
         try
         {
-            while (true)
+            while (!cancellationToken.IsCancellationRequested)
             {
                 var startedSocket = new TaskCompletionSource();
                 var endedSocket = new TaskCompletionSource();
@@ -150,7 +151,7 @@ public class NetworkLocalSocketManager(INetworkLocalConnectionLayer connectionLa
         }
     }
 
-    private async Task CheckNewConnection(Socket socket, TaskCompletionSource startedSocket, TaskCompletionSource endedSocket, CancellationToken cancellationToken)
+    private async Task CheckNewConnection(Socket socket, TaskCompletionSource startedSocket, TaskCompletionSource endedSocket, CancellationToken cancellationToken = default)
     {
         var newSocket = await socket.AcceptAsync(cancellationToken);
 
