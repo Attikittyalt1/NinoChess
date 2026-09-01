@@ -11,55 +11,18 @@ using System.Threading.Tasks;
 
 namespace NinoChess.Networking;
 
-public class Client(INetworkLocalConnectionLayer connectionLayer)
+public class Client()
 {
-    public bool Running { get; private set; } = false;
-    public bool Starting { get; private set; } = false;
-    public bool Stopping { get; private set; } = false;
     public bool Connected { get; private set; } = false;
     public bool Connecting { get; private set; } = false;
     public bool Disconnecting { get; private set; } = false;
 
-    private readonly NetworkLocalSocketManager _manager = new (connectionLayer);
+    public readonly NetworkLocalSocketManager SocketManager = new ();
 
     private Socket? _socket;
-    private CancellationTokenSource? _cancelLocal;
-    private Task? _endedLocal;
+    private IPEndPoint? _endPoint;
 
-    public async Task StartAsync(CancellationToken cancellationToken = default)
-    {
-        if (Starting) throw new InvalidOperationException("Client is already starting.");
-
-        if (Stopping) throw new InvalidOperationException("Client is still stopping.");
-
-        if (Running) throw new InvalidOperationException("Client is already running.");
-
-        Starting = true;
-
-        Console.WriteLine("Starting client.");
-
-        try
-        {
-            _cancelLocal = new CancellationTokenSource();
-
-            var startedLocal = new TaskCompletionSource();
-            var endedLocal = new TaskCompletionSource();
-
-            _endedLocal = endedLocal.Task;
-
-            _ = Task.Run(() => _manager.StartWatchingLocal(startedLocal, endedLocal, _cancelLocal.Token), _cancelLocal.Token);
-
-            await startedLocal.Task;
-
-            Running = true;
-
-            Console.WriteLine("Started client.");
-        } 
-        finally
-        {
-            Starting = false;
-        }
-    }
+    private (int id, Task stopWatching)? _socketInfo;
 
     public async Task ConnectAsync(IPEndPoint endPoint, CancellationToken cancellationToken = default)
     {
@@ -70,12 +33,6 @@ public class Client(INetworkLocalConnectionLayer connectionLayer)
 
         if (Connected) throw new InvalidOperationException("Client is already connected.");
 
-        if (Starting) throw new InvalidOperationException("Client is still starting.");
-
-        if (Stopping) throw new InvalidOperationException("Client is still stopping.");
-
-        if (!Running) throw new InvalidOperationException("Client is not running.");
-
         Connecting = true;
 
         Console.WriteLine("Connecting client.");
@@ -83,6 +40,7 @@ public class Client(INetworkLocalConnectionLayer connectionLayer)
         try
         {
             _socket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _endPoint = endPoint;
 
             cancellationToken.Register(() =>
             {
@@ -91,12 +49,7 @@ public class Client(INetworkLocalConnectionLayer connectionLayer)
 
             await _socket.ConnectAsync(endPoint, cancellationToken);
 
-            var startedSocket = new TaskCompletionSource();
-            var endedSocket = new TaskCompletionSource();
-
-            _ = Task.Run(() => _manager.StartWatchingSocket(_socket, startedSocket, endedSocket));
-
-            await startedSocket.Task;
+            _socketInfo = SocketManager.StartWatchingSocket(_socket, cancellationToken);
 
             Connected = true;
 
@@ -108,56 +61,12 @@ public class Client(INetworkLocalConnectionLayer connectionLayer)
         }
     }
 
-    public void Start()
-    {
-        StartAsync().Wait();
-    }
-
     public void Connect(IPEndPoint endPoint)
     {
         ConnectAsync(endPoint).Wait();
     }
 
-    public async Task StopAsync()
-    {
-        if (Stopping) throw new InvalidOperationException("Client is already stopping.");
-
-        if (Starting) throw new InvalidOperationException("Client is still starting.");
-
-        if (!Running) throw new InvalidOperationException("Client is already stopped.");
-
-        if (Disconnecting) throw new InvalidOperationException("Client is still disconnecting.");
-
-        if (Connecting) throw new InvalidOperationException("Client is still connecting.");
-
-        if (Connected) throw new InvalidOperationException("Client is still connected.");
-
-        Disconnecting = true;
-
-        Console.WriteLine("Disconecting client.");
-
-        try
-        {
-            if (!_cancelLocal.IsCancellationRequested)
-            {
-                _cancelLocal.Cancel();
-            }
-
-            await _endedLocal;
-
-            _cancelLocal = null;
-            _endedLocal = null;
-            Running = false;
-
-            Console.WriteLine("Disconnected client.");
-        }
-        finally
-        {
-            Stopping = false;
-        }
-    }
-
-    public async Task DisconnectAsync()
+    public async Task DisconnectAsync(CancellationToken cancellationToken = default)
     {
         if (Disconnecting) throw new InvalidOperationException("Client is already disconnecting.");
 
@@ -171,10 +80,14 @@ public class Client(INetworkLocalConnectionLayer connectionLayer)
 
         try
         {
-            await _socket.DisconnectAsync(false);
+            SocketManager.StopWatchingSocket(_socketInfo.Value.id);
+            await _socketInfo.Value.stopWatching;
+
+            await _socket.DisconnectAsync(false, cancellationToken);
 
             _socket = null;
             Connected = false;
+            _endPoint = null;
 
             Console.WriteLine("Disconnected client.");
         }
@@ -182,11 +95,6 @@ public class Client(INetworkLocalConnectionLayer connectionLayer)
         {
             Disconnecting = false;
         }
-    }
-
-    public void Stop()
-    {
-        StopAsync().Wait();
     }
 
     public void Disconnect()

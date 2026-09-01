@@ -8,20 +8,20 @@ using System.Threading.Tasks;
 
 namespace NinoChess.Networking;
 
-public class Server(INetworkLocalConnectionLayer connectionLayer)
+public class Server()
 {
     public bool Running { get; private set; } = false;
     public bool Starting { get; private set; } = false;
     public bool Stopping { get; private set; } = false;
-    public bool HasClients => Running && _manager.HasConnectedSockets;
+    public bool HasClients => Running && SocketManager.ConnectedSockets.Count > 0;
+
+    public readonly NetworkLocalSocketManager SocketManager = new();
 
     private Socket? _listener;
-    private CancellationTokenSource? _cancellationTokenSource;
     private IPEndPoint? _endPoint;
-    private Task? _tasksEnded;
-    private NetworkLocalSocketManager? _manager;
+    private Task? _stoppedListening;
 
-    public async Task StartAsync(IPEndPoint endPoint)
+    public async Task StartAsync(IPEndPoint endPoint, CancellationToken cancellationToken = default)
     {
         if (Running == true)
         {
@@ -44,26 +44,11 @@ public class Server(INetworkLocalConnectionLayer connectionLayer)
             _listener.Bind(endPoint);
             _listener.Listen();
 
-            _cancellationTokenSource = new CancellationTokenSource();
-
-            _manager = new NetworkLocalSocketManager(connectionLayer);
-
-            var startedLocal = new TaskCompletionSource();
-            var startedListener = new TaskCompletionSource();
-            var endedLocal = new TaskCompletionSource();
-            var endedListener = new TaskCompletionSource();
-            var endedSockets = new TaskCompletionSource();
-            _tasksEnded = Task.WhenAll(endedLocal.Task, startedListener.Task, endedSockets.Task);
-
-            _ = Task.Run(() => _manager.StartWatchingLocal(startedLocal, endedLocal, _cancellationTokenSource.Token));
-            _ = Task.Run(() => _manager.StartListeningSocket(_listener, startedListener, endedListener, endedSockets, _cancellationTokenSource.Token));
-
-            await Task.WhenAll(startedLocal.Task, startedListener.Task);
+            _stoppedListening = SocketManager.StartListeningSocket(_listener, cancellationToken);
 
             Running = true;
 
             Console.WriteLine("Started server.");
-
         } 
         finally
         {
@@ -94,20 +79,14 @@ public class Server(INetworkLocalConnectionLayer connectionLayer)
 
         try
         {
-            if (!_cancellationTokenSource.IsCancellationRequested)
-            {
-                _cancellationTokenSource.Cancel();
-            }
-
-            await _tasksEnded;
+            SocketManager.StopListeningSocket();
+            await _stoppedListening;
 
             _listener.Close();
 
             _endPoint = null;
             _listener = null;
-            _tasksEnded = null;
-            _cancellationTokenSource = null;
-            _manager = null;
+            _stoppedListening = null;
 
             Running = false;
 

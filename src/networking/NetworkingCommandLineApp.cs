@@ -18,9 +18,9 @@ namespace NinoChess.Networking;
 
 public class NetworkingCommandLineApp
 {
-    private readonly (Server core, ServerConnectionLayer layer) _server;
+    private readonly (Server core, GameServerLayer layer) _server;
 
-    private readonly Dictionary<string, (Client core, ClientConnectionLayer layer, CancellationTokenSource? stopConnecting)> _clients = [];
+    private readonly Dictionary<string, (Client core, GameClientLayer layer, CancellationTokenSource? stopConnecting)> _clients = [];
     private int _port = 25565;
     private IPAddress? _lastAddress = null;
 
@@ -33,10 +33,11 @@ public class NetworkingCommandLineApp
 
         var turnManager = new TurnManager(boardState, mutationService, eventService);
 
-        MyGame.SetupBoard(boardState, eventService, mutationService);
+        turnManager.SetupBoard();
 
-        _server.layer = new(turnManager);
-        _server.core = new(_server.layer);
+        _server.core = new();
+        _server.layer = new(_server.core, turnManager);
+        _server.layer.Initialize();
     }
 
     public void StartConsoleInterface()
@@ -131,7 +132,16 @@ public class NetworkingCommandLineApp
                 return;
             }
 
-            _server.layer.Input.SetResult(CustomPacket.FromMessage(message));
+            Task.Run(async () =>
+            {
+                var manager = _server.core.SocketManager;
+
+                await foreach (var socketID in manager.ConnectedSockets.ToAsyncEnumerable())
+                {
+                    await manager.SendAndRecieveReturnCodeAsync(CustomPacket.FromMessage(message), socketID);
+                    Console.WriteLine("Successfully sent message to client {0}", socketID);
+                }
+            });
         });
         #endregion server send
 
@@ -165,15 +175,12 @@ public class NetworkingCommandLineApp
 
             var turnManager = new TurnManager(boardState, mutationService, eventService);
 
-            MyGame.SetupBoard(boardState, eventService, mutationService);
+            turnManager.SetupBoard();
 
-            var layer = new ClientConnectionLayer(turnManager);
-            var core = new Client(layer);
-            layer.Disconnected += (sender, args) =>
-            {
-                core.Disconnect();
-            };
-
+            var core = new Client();
+            var layer = new GameClientLayer(core, turnManager);
+            layer.Initialize();
+            
             if (!_clients.TryAdd(name, (core, layer, null)))
             {
                 Console.WriteLine("Client already exists.");
@@ -184,90 +191,6 @@ public class NetworkingCommandLineApp
         });
 
         #endregion client create
-
-        #region client start
-
-        var clientStart = new Command("start")
-        {
-            clientName
-        };
-        clientStart.SetAction(parseResult =>
-        {
-            var name = parseResult.GetRequiredValue(clientName);
-
-            if (!_clients.TryGetValue(name, out var data))
-            {
-                Console.WriteLine("Could not find client with the provided name.");
-                return;
-            }
-
-            if (data.core.Starting)
-            {
-                Console.WriteLine("Client is already starting.");
-                return;
-            }
-
-            if (data.core.Stopping)
-            {
-                Console.WriteLine("Client is still stopping.");
-                return;
-            }
-
-            if (data.core.Running)
-            {
-                Console.WriteLine("Client is already running.");
-                return;
-            }
-
-            Task.Run(() =>
-            {
-                data.core.Start();
-            });
-        });
-
-        #endregion client start
-
-        #region client stop
-
-        var clientStop = new Command("stop")
-        {
-            clientName
-        };
-        clientStop.SetAction(parseResult =>
-        {
-            var name = parseResult.GetRequiredValue(clientName);
-
-            if (!_clients.TryGetValue(name, out var data))
-            {
-                Console.WriteLine("Could not find client with the provided name.");
-                return;
-            }
-
-            if (data.core.Stopping)
-            {
-                Console.WriteLine("Client is already stopping.");
-                return;
-            }
-
-            if (data.core.Starting)
-            {
-                Console.WriteLine("Client is still starting.");
-                return;
-            }
-
-            if (!data.core.Running)
-            {
-                Console.WriteLine("Client is already stopped.");
-                return;
-            }
-
-            Task.Run(() =>
-            {
-                data.core.Stop();
-            });
-        });
-
-        #endregion client stop
 
         #region client connect
 
@@ -306,7 +229,6 @@ public class NetworkingCommandLineApp
                 return;
             }
 
-
             if (!_clients.TryGetValue(name, out var data))
             {
                 Console.WriteLine("Could not find client with the provided name.");
@@ -331,24 +253,6 @@ public class NetworkingCommandLineApp
                 return;
             }
 
-            if (data.core.Starting)
-            {
-                Console.WriteLine("Client is still starting.");
-                return;
-            }
-
-            if (data.core.Stopping)
-            {
-                Console.WriteLine("Client is still stopping.");
-                return;
-            }
-
-            if (!data.core.Running)
-            {
-                Console.WriteLine("Client is not running.");
-                return;
-            }
-
             CancellationTokenSource cancellationTokenSource = new();
             _clients[name] = data with { stopConnecting = cancellationTokenSource };
             _lastAddress = ipaddress;
@@ -356,7 +260,28 @@ public class NetworkingCommandLineApp
             Task.Run(async () =>
             {
                 await data.core.ConnectAsync(new(ipaddress, _port), cancellationTokenSource.Token);
-                data.layer.Input.SetResult(CustomPacket.Connect);
+
+                var connectReturnCode = await data.core.SocketManager.SendAndRecieveReturnCodeAsync(CustomPacket.Connect, 0, cancellationTokenSource.Token);
+
+                if (!CustomPacket.IsSuccess(connectReturnCode))
+                {
+                    Console.WriteLine("Failed to activate id.");
+                }
+
+                var requestPacket = await data.core.SocketManager.SendAndRecieveSpecificResponseOrReturnCodeAsync(CustomPacket.RequestID, 0, CustomPacket.PacketType.AssignID, cancellationTokenSource.Token);
+
+                if (requestPacket.Type != CustomPacket.PacketType.AssignID)
+                {
+                    Console.WriteLine("Failed to recieve assigned id.");
+                }
+
+                var linkReturnCode = await data.core.SocketManager.SendAndRecieveReturnCodeAsync(CustomPacket.FromLinkID(requestPacket.ToAssignID()), 0, cancellationTokenSource.Token);
+
+                if (CustomPacket.IsSuccess(linkReturnCode))
+                {
+                    Console.WriteLine("Failed to link id.");
+                }
+
             }, cancellationTokenSource.Token);
         });
 
@@ -396,10 +321,23 @@ public class NetworkingCommandLineApp
                 return;
             }
 
-            Task.Run(() =>
+            Task.Run(async () =>
             {
+                var unassignReturnCode = await data.core.SocketManager.SendAndRecieveReturnCodeAsync(CustomPacket.UnassignID, 0);
 
-                data.layer.Input.SetResult(CustomPacket.Disconnect);
+                if (!CustomPacket.IsSuccess(unassignReturnCode))
+                {
+                    Console.WriteLine("Failed to unassign id.");
+                }
+
+                var disconnectReturnCode = await data.core.SocketManager.SendAndRecieveReturnCodeAsync(CustomPacket.Disconnect, 0);
+
+                if (!CustomPacket.IsSuccess(disconnectReturnCode))
+                {
+                    Console.WriteLine("Failed to deactivate id.");
+                }
+
+                await data.core.DisconnectAsync();
             });
         });
 
@@ -440,16 +378,17 @@ public class NetworkingCommandLineApp
                 return;
             }
 
-            data.layer.Input.SetResult(CustomPacket.FromMessage(message));
+            Task.Run(async () =>
+            {
+                await data.core.SocketManager.SendAndRecieveReturnCodeAsync(CustomPacket.FromMessage(message), 0);
+                Console.WriteLine("Successfully sent message to server.");
+            });
         });
         #endregion client send
-
 
         var clientRoot = new Command("client")
         {
             clientCreate,
-            clientStart,
-            clientStop,
             clientConnect,
             clientDisconnect,
             clientSend

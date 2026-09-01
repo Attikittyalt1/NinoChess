@@ -12,7 +12,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
+using static NinoChess.Networking.GameClientLayer;
+using static NinoChess.Pieces.Scholar;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace NinoChess;
 public class MyGame : Game
@@ -29,7 +34,7 @@ public class MyGame : Game
 
     private Grid? _grid;
     private TurnManager? _turnManager;
-    private ClientConnectionLayer? _layer;
+    private GameClientLayer? _layer;
     private Client? _client;
     private readonly IPEndPoint _ep;
 
@@ -63,10 +68,11 @@ public class MyGame : Game
         var mutationService = new MutationService();
 
         _turnManager = new(boardState, mutationService, eventService);
-        _layer = new(_turnManager);
-        _client = new(_layer);
+        _client = new();
+        _layer = new(_client, _turnManager);
+        _layer.Initialize();
 
-        SetupBoard(boardState, eventService, mutationService);
+        _turnManager.SetupBoard();
 
         draggingHandler = new();
         draggingHandler.OnDragBegin += (o, e) =>
@@ -103,12 +109,19 @@ public class MyGame : Game
 
                 var info = new MoveInfo(data.InitialPiecePosition, pos);
 
-                if (_grid.ContainsPosition(pos) && _turnManager.IsValid(info) && _layer.UndoBuffer == 0 && _layer.NetworkMoveBuffer.Count == 0)
+                if (_grid.ContainsPosition(pos) && _turnManager.IsValid(info) && _layer.NetworkTurnBuffer.Count == 0 && (_layer.PlayerID is null || _layer.PlayerID == _turnManager.CurrentPlayer))
                 {
-                    _turnManager.Do(info);
-                    _layer.LocalMoveBuffer.Enqueue(info);
+                    var turn = new ClientMove(info);
+                    var player = _turnManager.CurrentPlayer;
+                    var packet = CustomPacket.FromMove(info, _turnManager.Turn);
 
-                    _layer.Input.TrySetResult(CustomPacket.FromTurn(_layer.LocalMoveBuffer.Peek(), _turnManager.Turn - _layer.LocalMoveBuffer.Count));
+                    _turnManager.Do(info);
+
+                    _layer.LocalTurnBuffer.Enqueue(turn);
+                    _layer.LocalTurnOffset += turn.TurnOffset;
+
+                    SendUpdateFromLocalBuffer(turn, packet, player);
+
                     return;
                 }
             }
@@ -119,66 +132,87 @@ public class MyGame : Game
         AddPieces();
         AddMoves();
 
-        Task.Run(async () =>
-        {
-            await _client.StartAsync();
-            await _client.ConnectAsync(_ep);
-        });
+        ConnectClient();
 
         base.Initialize();
     }
 
-    public static void SetupBoard(BoardStateData boardState, EventService eventService, MutationService mutationService)
+    private void SendUpdateFromLocalBuffer(IClientTurn turn, CustomPacket packet, int player)
     {
-        Create(new Pawn { Position = new(0, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-        Create(new Pawn { Position = new(1, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-        Create(new Pawn { Position = new(2, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-        Create(new Pawn { Position = new(3, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-        Create(new Pawn { Position = new(4, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-        Create(new Pawn { Position = new(5, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-        Create(new Pawn { Position = new(6, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-        Create(new Pawn { Position = new(7, 1), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-        Create(new Rook { Position = new(0, 0), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-        Create(new Knight { Position = new(1, 0), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-        Create(new Scholar { Position = new(2, 0), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-        Create(new Moog { Position = new(3, 0), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-        Create(new King { Position = new(4, 0), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-        Create(new Scholar { Position = new(5, 0), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-        Create(new Knight { Position = new(6, 0), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-        Create(new Rook { Position = new(7, 0), Orientation = Transformation.Identity, Allegience = Allegience.White, BoardState = boardState, EventService = eventService });
-
-        Create(new Pawn { Position = new(0, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black, BoardState = boardState, EventService = eventService });
-        Create(new Pawn { Position = new(1, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black, BoardState = boardState, EventService = eventService });
-        Create(new Pawn { Position = new(2, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black, BoardState = boardState, EventService = eventService });
-        Create(new Pawn { Position = new(3, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black, BoardState = boardState, EventService = eventService });
-        Create(new Pawn { Position = new(4, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black, BoardState = boardState, EventService = eventService });
-        Create(new Pawn { Position = new(5, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black, BoardState = boardState, EventService = eventService });
-        Create(new Pawn { Position = new(6, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black, BoardState = boardState, EventService = eventService });
-        Create(new Pawn { Position = new(7, 6), Orientation = Transformation.Flip, Allegience = Allegience.Black, BoardState = boardState, EventService = eventService });
-        Create(new Rook { Position = new(0, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black, BoardState = boardState, EventService = eventService });
-        Create(new Knight { Position = new(1, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black, BoardState = boardState, EventService = eventService });
-        Create(new Scholar { Position = new(2, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black, BoardState = boardState, EventService = eventService });
-        Create(new Moog { Position = new(3, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black, BoardState = boardState, EventService = eventService });
-        Create(new King { Position = new(4, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black, BoardState = boardState, EventService = eventService });
-        Create(new Scholar { Position = new(5, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black, BoardState = boardState, EventService = eventService });
-        Create(new Knight { Position = new(6, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black, BoardState = boardState, EventService = eventService });
-        Create(new Rook { Position = new(7, 7), Orientation = Transformation.Flip, Allegience = Allegience.Black, BoardState = boardState, EventService = eventService });
-
-        void Create(Piece piece)
+        Task.Run(async () =>
         {
-            var sender = boardState;
-            var args = new Event_Create
+            Console.WriteLine("Sending move to server");
+            var returnCode = await _client.SocketManager.SendAndRecieveReturnCodeAsync(packet, 0);
+
+            if (CustomPacket.IsSuccess(returnCode))
             {
-                MutationService = mutationService,
-                Piece = piece
-            };
+                Console.WriteLine("Successfully sent move to server.");
+                _layer.PlayerID = player;
+            }
+            else
+            {
+                switch (returnCode)
+                {
+                    case CustomPacket.ReturnCode.FailureC:
+                        {
+                            Console.WriteLine("Wrong player.");
+                            break;
+                        }
+                }
 
-            piece.OnCreate(sender, args);
+                turn.HasBeenMarkedInvalid = true;
+                Console.WriteLine("Failed to send move to server. Return code: {0}", returnCode);
+            }
+        });
+    }
 
-            new Mutation_Create { Board = boardState.Board, Piece = piece}.Execute();
+    private void ConnectClient()
+    {
+        Task.Run(async () =>
+        {
+            // MOVE THIS TO GAMECLIENTLAYER
 
-            eventService.Get<Event_Create>()?.Invoke(sender, args);
-        }
+
+            await _client.ConnectAsync(_ep);
+
+            Console.WriteLine("Activating id.");
+            var connectReturnCode = await _client.SocketManager.SendAndRecieveReturnCodeAsync(CustomPacket.Connect, 0);
+
+            if (!CustomPacket.IsSuccess(connectReturnCode))
+            {
+                Console.WriteLine("Failed to activate id.");
+                return;
+            } 
+
+            _layer._active = true;
+            Console.WriteLine("Successfully activated id.");
+
+            Console.WriteLine("Requesting assigned id.");
+            var requestPacket = await _client.SocketManager.SendAndRecieveSpecificResponseOrReturnCodeAsync(CustomPacket.RequestID, 0, CustomPacket.PacketType.AssignID);
+
+            if (requestPacket.Type != CustomPacket.PacketType.AssignID)
+            {
+                Console.WriteLine("Failed to recieve assigned id.");
+                return;
+            }
+
+            _layer._possibleRegistrationID = requestPacket.ToAssignID();
+            Console.WriteLine("Successfully recieved assigned id.");
+
+            Console.WriteLine("Linking id.");
+            var linkReturnCode = await _client.SocketManager.SendAndRecieveReturnCodeAsync(CustomPacket.FromLinkID(_layer._possibleRegistrationID.Value), 0);
+
+            if (!CustomPacket.IsSuccess(linkReturnCode))
+            {
+                Console.WriteLine("Failed to link to server.");
+                return;
+            }
+
+            _layer._registrationID = _layer._possibleRegistrationID;
+            Console.WriteLine("Successfully linked to server with registration id {0}", _layer._registrationID);
+
+            Console.WriteLine("Finished connection procedure");
+        });
     }
 
     private void InitializeWindow()
@@ -247,14 +281,28 @@ public class MyGame : Game
 
     protected override void Update(GameTime gameTime)
     {
-        for (int i = 0; i < _layer.UndoBuffer; i++)
+        while (_layer.NetworkTurnBuffer.TryDequeue(out var turn))
         {
-            _turnManager.Undo();
+            _layer.NetworkTurnOffset -= turn.TurnOffset;
+
+            if (turn is GameClientLayer.ClientMove move)
+            {
+                _turnManager.Do(move.MoveInfo);
+            }
         }
 
-        while (_layer.NetworkMoveBuffer.TryDequeue(out var move))
+        if (_layer.LocalTurnBuffer.TryPeek(out var firstTurn) && firstTurn.HasBeenMarkedInvalid)
         {
-            _turnManager.Do(move);
+            foreach (var turn in _layer.LocalTurnBuffer.Reverse())
+            {
+                if (turn is GameClientLayer.ClientMove)
+                {
+                    _turnManager.Undo();
+                }
+            }
+
+            _layer.LocalTurnBuffer.Clear();
+            _layer.LocalTurnOffset = 0;
         }
 
         UpdateInputs(gameTime);
@@ -278,7 +326,7 @@ public class MyGame : Game
         {
             if (_undoPrevDown == true)
             {
-                _turnManager.Undo();
+                //_turnManager.Undo();
             }
 
             _undoPrevDown = keyboardState.IsKeyDown(Keys.Z);
@@ -290,7 +338,7 @@ public class MyGame : Game
         {
             if (_redoPrevDown == true)
             {
-                _turnManager.Redo();
+                //_turnManager.Redo();
             }
 
             _redoPrevDown = keyboardState.IsKeyDown(Keys.Y);
